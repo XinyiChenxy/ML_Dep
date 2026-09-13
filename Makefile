@@ -41,10 +41,14 @@ image-push: image ## Push to CONTAINER_REGISTRY via your adapter
 	print(get_adapter(config.load()).push_image(\"$(IMAGE):$(TAG)\"))"
 
 reproduce: data image ## THE ONE COMMAND. Grader runs this.
+	@mkdir -p reports
+	@chmod a+rwx reports
+	@chmod a+rw reports/metrics.json 2>/dev/null || true
 	docker run --rm \
 	  -v "$$PWD/data:/app/data:ro" \
 	  -v "$$PWD/reports:/app/reports" \
 	  -e MLFLOW_TRACKING_URI=sqlite:////app/reports/mlflow.db \
+	  -e GIT_COMMIT="$$(git rev-parse HEAD)" \
 	  $(IMAGE):$(TAG) --seed $(SEED) --metrics-out /app/reports/metrics.json
 
 verify: ## Check the produced metric against the README claim

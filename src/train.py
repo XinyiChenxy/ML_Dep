@@ -11,11 +11,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 from pathlib import Path
 
 import mlflow
 import mlflow.sklearn
+from mlflow.tracking import MlflowClient
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import average_precision_score, roc_auc_score
 
@@ -23,6 +25,8 @@ from src import config, data, seeds
 
 
 def git_commit() -> str:
+    if commit := os.environ.get("GIT_COMMIT"):
+        return commit
     try:
         out = subprocess.run(
             ["git", "rev-parse", "HEAD"],
@@ -56,6 +60,12 @@ def main() -> None:
     train_df, val_df, test_df = data.split(df, seed=seed)
 
     mlflow.set_tracking_uri(cfg.mlflow_tracking_uri)
+    client = MlflowClient()
+    if client.get_experiment_by_name(args.experiment) is None:
+        # The reports directory is mounted by `make reproduce`, so models survive the
+        # container that trained them instead of being written to ephemeral /app/mlruns.
+        artifact_root = (cfg.reports_dir / "mlartifacts").resolve().as_uri()
+        client.create_experiment(args.experiment, artifact_location=artifact_root)
     mlflow.set_experiment(args.experiment)
 
     with mlflow.start_run(run_name=args.run_name):
