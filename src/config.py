@@ -81,3 +81,8 @@ def load(strict: bool = True) -> Config:
         model_registry_name=get("MODEL_REGISTRY_NAME", "itcs355"),
         identity_ref=get("IDENTITY_REF", ""),
     )
+
+
+def runtime_value(name: str, default: str = "") -> str:
+    """Runtime metadata injected into managed training containers."""
+    return os.environ.get(name, default)

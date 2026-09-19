@@ -129,3 +129,9 @@ no cloud credentials. Provider credentials are required only for `dvc push` and 
 
 That last check is not optional. A credential in Git history is an automatic deduction in this
 course, and rotating it is your responsibility, not the grader's.
+
+## Lab 2 — GCP
+
+See [GCP setup and lab workflow](docs/lab2-gcp-zh.md) and [measured comparison](reports/lab2-comparison.md). Local rehearsal: `bash scripts/lab2_local.sh`.
+
+In a real organisation, an independent ML platform/release reviewer and model owner should authorize staging promotion after checking validation/test results, seed stability, lineage, cost, reproducible reload and rollback evidence. Training identities should not have production promotion permission. The lab script assigns staging automatically only to demonstrate the workflow.

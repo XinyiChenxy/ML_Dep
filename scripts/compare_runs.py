@@ -1,88 +1,70 @@
-"""Lab 2 — rank tracked runs by metric AND by cost per point.
-
-    python scripts/compare_runs.py --experiment itcs355-lab2
-
-Writes reports/lab2-comparison.md. The cost-per-point column is what the lab is about:
-the highest-scoring run is frequently not the one you should register.
-"""
+"""Compare completed checkpoint runs; select using validation only."""
 from __future__ import annotations
-
 import argparse
-import sys
+import json
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-import mlflow
 import pandas as pd
 
-from src import config
 
-
-def main() -> int:
+def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--experiment", default="itcs355-lab2")
-    ap.add_argument("--metric", default="val_roc_auc")
-    ap.add_argument("--out", type=Path, default=Path("reports/lab2-comparison.md"))
+    ap.add_argument('--experiment', default='itcs355-lab2')
+    ap.add_argument('--checkpoint', type=Path, default=Path('reports/tune_checkpoint.json'))
+    ap.add_argument('--out', type=Path, default=Path('reports/lab2-comparison.md'))
     args = ap.parse_args()
-
-    cfg = config.load(strict=False)
-    mlflow.set_tracking_uri(cfg.mlflow_tracking_uri)
-    exp = mlflow.get_experiment_by_name(args.experiment)
-    if exp is None:
-        print(f"No experiment named {args.experiment!r}. Run `make tune` first.")
-        return 1
-
-    runs = mlflow.search_runs(experiment_ids=[exp.experiment_id])
-    if runs.empty:
-        print("No runs found.")
-        return 1
-
-    metric_col = f"metrics.{args.metric}"
-    cost_col = "metrics.cost_thb"
-    baseline = runs[metric_col].min()
-
-    table = pd.DataFrame({
-        "run_id": runs["run_id"].str[:8],
-        args.metric: runs[metric_col].round(4),
-        "cost_thb": runs.get(cost_col, 0).round(4),
-        "n_estimators": runs.get("params.n_estimators"),
-        "max_depth": runs.get("params.max_depth"),
-        "min_samples_leaf": runs.get("params.min_samples_leaf"),
-    })
-    gain = (table[args.metric] - baseline).clip(lower=1e-9)
-    table["thb_per_point"] = (table["cost_thb"] / (gain * 100)).round(4)
-    table = table.sort_values(args.metric, ascending=False)
-
+    state = json.loads(args.checkpoint.read_text())
+    runs = pd.DataFrame(state['completed'])
+    if len(runs) != len(state['signature']['candidates']):
+        raise ValueError('Study incomplete; do not select from a partial study')
+    keys = ['n_estimators', 'max_depth', 'min_samples_leaf']
+    grouped = runs.groupby(keys).agg(val_mean=('val_roc_auc', 'mean'),
+        val_std=('val_roc_auc', 'std'), seeds=('seed', 'nunique'),
+        mean_cost=('cost_thb', 'mean'), mean_seconds=('duration_s', 'mean')).reset_index()
+    if (grouped.seeds < 3).any():
+        raise ValueError('Each configuration needs three distinct seeds')
+    best = grouped.loc[grouped.val_mean.idxmax()]
+    # Within 0.005 AUC of best mean, choose the fastest measured configuration.
+    selected = grouped[grouped.val_mean >= best.val_mean - 0.005].sort_values(
+        ['mean_seconds', 'n_estimators', 'max_depth']).iloc[0]
+    matching = runs[(runs[keys] == selected[keys]).all(axis=1)]
+    # Predetermined seed order, not test score, chooses the concrete model.
+    winner = matching.sort_values('seed').iloc[0].to_dict()
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    lines = [
-        "# Lab 2 — Run comparison",
-        "",
-        f"Experiment `{args.experiment}` · {len(table)} trials · "
-        f"total spend {table['cost_thb'].sum():.4f} THB",
-        "",
-        "`thb_per_point` is cost per percentage point of "
-        f"{args.metric} above the worst trial. Cheap improvements rank low; expensive "
-        "improvements rank high, however good the headline number is.",
-        "",
-        table.to_markdown(index=False),
-        "",
-        "## Which model did you register, and why?",
-        "",
-        "TODO(Lab 2): 200 words maximum. Must address all four:",
-        "",
-        "1. Why this model rather than the highest-scoring one, if they differ",
-        "2. The variance across seeds for your chosen configuration",
-        "3. What it costs to train, and to retrain monthly",
-        "4. One way this choice could be wrong",
-        "",
-        "An answer that only says \"highest validation score\" scores zero on this task.",
-    ]
-    args.out.write_text("\n".join(lines))
-    print(f"wrote {args.out}  ({len(table)} trials)")
-    print(table.head(5).to_string(index=False))
-    return 0
+    (args.out.parent / 'lab2-selection.json').write_text(json.dumps(winner, indent=2))
+    local = set(runs.execution) == {'local'}
+    cost_text = ('Local execution has no billed cloud compute cost; GCP training and monthly '
+                 'retraining costs remain unmeasured.' if local else
+                 f"Mean training cost is {selected.mean_cost:.4f} THB; one monthly retrain costs "
+                 f"the same, or {selected.mean_cost * 12:.4f} THB annually, excluding overhead.")
+    justification = (
+        f"We select {int(selected.n_estimators)} trees, depth {int(selected.max_depth)}, "
+        f"and minimum leaf size {int(selected.min_samples_leaf)}. Its mean validation ROC-AUC "
+        f"is {selected.val_mean:.5f}, versus the best configuration's {best.val_mean:.5f}. "
+        "Among configurations within a predeclared 0.005 AUC tolerance of the best mean, "
+        "it has the shortest measured mean runtime. This tolerance is a practical tradeoff, "
+        "not evidence of statistical equivalence. "
+        f"Across three model seeds on the same group split, sample standard deviation is "
+        f"{selected.val_std:.6f} (variance {selected.val_std ** 2:.8f}). "
+        f"{cost_text} The representative model uses the smallest predetermined seed; "
+        "test scores do not affect selection. This choice could be wrong because seed variance "
+        "does not capture uncertainty across machines or future distribution shifts. "
+        "Runtime rankings may also change on cloud hardware.")
+    assert len(justification.split()) <= 200
+    lines = ['# Lab 2 — Run comparison', '',
+        '**LOCAL REHEARSAL ONLY — cloud submission requirements remain pending.**' if local else '**Cloud Spot study**', '',
+        f"Completed trials: {len(runs)}; checkpoint resume events: {len(state['resume_events'])}.",
+        f"Estimated trial cost: {state['spent_thb']:.6f} THB. This is not a billing export.", '',
+        '## Configuration comparison', '', grouped.to_markdown(index=False), '',
+        '## Selection justification (≤200 words)', '', justification, '',
+        f"Selected MLflow run: `{winner['run_id']}`", '',
+        '## All trials', '', runs.drop(columns=['artifact_uri', 'mlflow_model_uri']).to_markdown(index=False), '',
+        '## Outstanding cloud evidence', '',
+        'GCP Spot job ID, verified regional pricing and exchange rate, actual billing export, '
+        'cloud restart logs, versioned Vertex model and staging alias, and teardown evidence '
+        'must be attached after a real cloud execution. Do not substitute local results.', '']
+    args.out.write_text('\n'.join(lines))
+    print(f'Wrote {args.out}; selected {winner["run_id"]}')
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
+if __name__ == '__main__':
+    main()

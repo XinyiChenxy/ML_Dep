@@ -2,7 +2,9 @@
 cloud.env
 
 # DVC manages these; Git must not.
-data/raw/
+data/raw/*
+!data/raw/*.dvc
+!data/raw/.gitignore
 data/_local_blob/
 .dvc/cache/
 
@@ -23,3 +25,7 @@ __pycache__/
 
 # ruff cache
 .ruff_cache/
+
+# Lab 2 model bundles and local database sidecars
+reports/lab2-models/
+mlflow.db-*
