@@ -1,0 +1,42 @@
+name: Scheduled drift detection
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_MONITORING_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - run: python -m pip install --require-hashes -r requirements.txt
+      - name: Download reference and current windows
+        run: |
+          gcloud storage cp "${{ vars.DRIFT_REFERENCE_URI }}" data/reference.csv
+          gcloud storage cp "${{ vars.DRIFT_CURRENT_URI }}" data/current.csv
+      - name: Detect, emit metric, and alert
+        env:
+          CLOUD_PROVIDER: gcp
+          PROJECT_ID: ${{ vars.PROJECT_ID }}
+          REGION: ${{ vars.REGION }}
+          BLOB_URI: ${{ vars.BLOB_URI }}
+          CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
+          MLFLOW_TRACKING_URI: ${{ vars.MLFLOW_TRACKING_URI }}
+          MODEL_REGISTRY_NAME: ${{ vars.MODEL_REGISTRY_NAME }}
+          IDENTITY_REF: ${{ vars.IDENTITY_REF }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: python -m monitoring.drift --reference data/reference.csv --current data/current.csv --threshold 0.20 --emit

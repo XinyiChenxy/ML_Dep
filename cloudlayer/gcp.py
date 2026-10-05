@@ -37,14 +37,6 @@ class GcpAdapter(CloudAdapter):
         from google.api_core.exceptions import NotFound
         try:
             self.download(uri, local_path)
-            return True
-        except NotFound:
-            return False
-
-    def download_if_exists(self, uri: str, local_path: str) -> bool:
-        from google.api_core.exceptions import NotFound
-        try:
-            self.download(uri, local_path)
         except NotFound:
             return False
         return True
@@ -180,6 +172,22 @@ class GcpAdapter(CloudAdapter):
         prediction = list(response.predictions[0])
         probability = float(prediction[-1])
         return {'probability': probability, 'model_version': 'managed'}
+
+    def emit_metric(self, name: str, value: float, unit: str = '1') -> None:
+        from google.cloud import monitoring_v3
+        from google.protobuf import timestamp_pb2
+
+        client = monitoring_v3.MetricServiceClient()
+        series = monitoring_v3.TimeSeries()
+        series.metric.type = 'custom.googleapis.com/itcs355/' + name.replace('.', '/')
+        series.resource.type = 'global'
+        series.resource.labels['project_id'] = self.cfg.project_id
+        point = monitoring_v3.Point()
+        point.value.double_value = float(value)
+        point.interval.end_time = timestamp_pb2.Timestamp()
+        point.interval.end_time.GetCurrentTime()
+        series.points = [point]
+        client.create_time_series(name=f'projects/{self.cfg.project_id}', time_series=[series])
 
     def teardown(self, tags: dict[str, str]) -> list[str]:
         from google.cloud.aiplatform_v1.types import JobState

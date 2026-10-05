@@ -16,8 +16,9 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
+from service import metrics
 from service.schemas import BatchRequest, BatchResponse, PredictRequest, PredictResponse
 
 logging.basicConfig(
@@ -88,8 +89,14 @@ app = FastAPI(title="ITCS355 inference", version="1.0.0", lifespan=lifespan)
 async def add_request_context(request: Request, call_next):
     request_id = request.headers.get("x-request-id", str(uuid.uuid4()))
     started = time.perf_counter()
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception:
+        latency_ms = (time.perf_counter() - started) * 1000
+        metrics.observe_request(500, latency_ms)
+        raise
     latency_ms = (time.perf_counter() - started) * 1000
+    metrics.observe_request(response.status_code, latency_ms)
     response.headers["x-request-id"] = request_id
     response.headers["x-model-version"] = str(STATE["version"])
     log.info(
@@ -118,6 +125,11 @@ def ready():
     return {"status": "ready", "model_version": STATE["version"]}
 
 
+@app.get("/metrics", response_class=PlainTextResponse)
+def prometheus_metrics() -> str:
+    return metrics.render_prometheus(str(STATE["version"]))
+
+
 def _score(rows: list[dict]) -> list[float]:
     if STATE["model"] is None:
         raise HTTPException(status_code=503, detail="model not loaded")
@@ -125,6 +137,7 @@ def _score(rows: list[dict]) -> list[float]:
 
     from src.data import FEATURES
 
+    metrics.observe_features(rows)
     frame = pd.DataFrame(rows)[FEATURES]
     return [float(p) for p in STATE["model"].predict_proba(frame)[:, 1]]
 

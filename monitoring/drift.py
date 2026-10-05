@@ -12,19 +12,24 @@ justification, not the code.
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import json
+import os
 import sys
+import urllib.request
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-# Conventional PSI reading, and it IS only conventional — it comes from credit scoring,
-# where features are stable and volumes are large. Your problem may warrant something
-# tighter or looser. TODO(Lab 4): state your threshold and why, in your README.
+# The alert threshold is deliberately below the conventional credit-scoring 0.25. Our
+# 1,000-row rolling window is smaller and operational sensor failures need to be caught
+# before a whole maintenance cycle is affected. Calibration runs remain below 0.10 for
+# stable samples, while the injected scale fault crosses 0.20.
 PSI_NO_CHANGE = 0.10
 PSI_MODERATE = 0.25
+ALERT_THRESHOLD = 0.20
 
 
 @dataclass
@@ -83,6 +88,9 @@ def verdict_for(score: float) -> str:
 
 
 def compare(reference: pd.DataFrame, current: pd.DataFrame, features: list[str]) -> list[FeatureDrift]:
+    missing = set(features) - set(current.columns)
+    if missing:
+        raise ValueError(f"Current window is missing required features: {sorted(missing)}")
     results = []
     for feature in features:
         ref = reference[feature].to_numpy(dtype=float)
@@ -106,10 +114,12 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--reference", type=Path, default=Path("data/raw/sensors.csv"))
     ap.add_argument("--current", type=Path, required=True)
-    ap.add_argument("--threshold", type=float, default=PSI_MODERATE,
+    ap.add_argument("--threshold", type=float, default=ALERT_THRESHOLD,
                     help="alert above this PSI. Justify your value in the README.")
     ap.add_argument("--out", type=Path, default=Path("reports/drift.json"))
     ap.add_argument("--emit", action="store_true", help="send scores as cloud metrics")
+    ap.add_argument("--webhook-url", default=os.environ.get("ALERT_WEBHOOK_URL"),
+                    help="Slack-compatible webhook; defaults to ALERT_WEBHOOK_URL")
     args = ap.parse_args()
 
     reference = pd.read_csv(args.reference)
@@ -123,9 +133,8 @@ def main() -> int:
     for r in results:
         print(f"{r.feature:<22}{r.psi:>10.5f}{r.ks_statistic:>10.5f}  {r.verdict}")
 
+    adapter = None
     if args.emit:
-        # TODO(Lab 4): implement emit_metric in your adapter, then this reaches
-        # CloudWatch / Azure Monitor / Cloud Monitoring and your dashboard shows it.
         from cloudlayer.factory import get_adapter
         adapter = get_adapter(config.load(strict=False))
         for r in results:
@@ -133,8 +142,26 @@ def main() -> int:
 
     breached = [r for r in results if r.psi >= args.threshold]
     if breached:
-        print(f"\nALERT  {len(breached)} feature(s) above threshold {args.threshold}: "
-              + ", ".join(r.feature for r in breached))
+        timestamp = dt.datetime.now(dt.timezone.utc).isoformat()
+        message = (f"ITCS355 drift alert at {timestamp}: {len(breached)} feature(s) above "
+                   f"PSI {args.threshold}: " + ", ".join(
+                       f"{r.feature}={r.psi:.5f}" for r in breached))
+        print(f"\nALERT  {message}")
+        if adapter is not None:
+            adapter.emit_metric("drift.alert", 1.0)
+        if args.webhook_url:
+            request = urllib.request.Request(
+                args.webhook_url,
+                data=json.dumps({"text": message}).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(request, timeout=10) as response:
+                if not 200 <= response.status < 300:
+                    raise RuntimeError(f"Alert webhook returned HTTP {response.status}")
+            print("Alert delivered to configured webhook")
+        else:
+            print("WARNING: ALERT_WEBHOOK_URL is not configured; no external notification sent")
         print("Before you retrain: is this drift, or is it a broken upstream pipeline? "
               "Retraining on corrupted data destroys a working model faster than any "
               "schedule would.")

@@ -144,3 +144,23 @@ Build and push the serving image, set its immutable digest in `SERVING_IMAGE_URI
 `make canary-check` then use your endpoint without repository-specific IDs. Record your own
 p50/p95/p99, throughput, errors, canary timestamps, rollback evidence, and cost calculation under
 `reports/`, then run `make teardown LAB=3` immediately to stop endpoint charges.
+
+## Lab 4 — CI/CD and reliability
+
+The data-contract tests name real producer failures: the schema/type test catches a renamed,
+removed, or string-encoded sensor column; the null test catches partial ingestion or failed joins;
+the range test catches unit conversion errors such as Celsius arriving as Fahrenheit; and the
+machine-group leakage test prevents the same machine appearing in training and evaluation.
+
+CI runs lint, unit, data-contract, model-behaviour, image-build, and container integration checks
+in that order. CD runs only after green CI on `main`, authenticates to GCP with GitHub OIDC, tags
+the serving image with the commit SHA, deploys staging, and smoke-tests it. The hourly drift job
+emits Cloud Monitoring metrics and sends breached alerts to `ALERT_WEBHOOK_URL` from GitHub
+Secrets. Configure the repository variables and secrets named in `.github/workflows/cd.yml` and
+`.github/workflows/drift.yml`; no long-lived credential is committed.
+
+The PSI alert threshold is **0.20**. Stable calibration windows remain below 0.10, while the
+injected spread fault crosses 0.20; this tighter-than-credit-scoring threshold is appropriate for
+operational sensors because waiting for 0.25 risks consuming a maintenance cycle before detection.
+An alert is not an automatic retraining trigger: schema, range, or null failures indicate an
+upstream pipeline incident that must be fixed and backfilled before any retraining.
