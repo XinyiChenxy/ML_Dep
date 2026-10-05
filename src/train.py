@@ -8,25 +8,27 @@ the data fingerprint, and the Git commit. A metric that cannot be traced to code
 data is not evidence of anything.
 """
 from __future__ import annotations
-
 import argparse
 import json
 import os
 import subprocess
 from pathlib import Path
 
+import joblib
 import mlflow
 import mlflow.sklearn
-from mlflow.tracking import MlflowClient
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import average_precision_score, roc_auc_score
 
+from cloudlayer.factory import get_adapter
 from src import config, data, seeds
 
 
 def git_commit() -> str:
-    if commit := os.environ.get("GIT_COMMIT"):
-        return commit
+    env_sha = os.environ.get("GIT_COMMIT_SHA")
+    if env_sha:
+        return env_sha
+
     try:
         out = subprocess.run(
             ["git", "rev-parse", "HEAD"],
@@ -36,6 +38,16 @@ def git_commit() -> str:
     except Exception:
         return "unknown"
 
+def dvc_hash() -> str:
+    dvc_file = config.REPO_ROOT / "data/raw.dvc"
+    try:
+        for line in dvc_file.read_text().splitlines():
+            line = line.strip()
+            if line.startswith("md5:") or line.startswith("- md5:"):
+                return line.split(":", 1)[1].strip()
+    except Exception:
+        pass
+    return "unknown"
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="ITCS355 Lab 1 — reproducible training")
@@ -45,6 +57,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--seed", type=int, default=seeds.DEFAULT_SEED)
     p.add_argument("--experiment", default="itcs355-lab1")
     p.add_argument("--run-name", default=None)
+    p.add_argument(
+        "--upload-artifacts",
+        type=lambda value: value.lower() in {"1", "true", "yes"},
+        default=False,
+        help="Download input and upload outputs through the cloud adapter (remote jobs).",
+    )
     p.add_argument("--metrics-out", type=Path, default=None,
                    help="Write final metrics as JSON. Used by `make verify`.")
     return p.parse_args()
@@ -53,19 +71,29 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     cfg = config.load(strict=False)
+    adapter = get_adapter(cfg) if args.upload_artifacts else None
     seed = seeds.set_all(args.seed)
 
+    if not cfg.raw_path.exists() and adapter is not None:
+        remote_data = f"{cfg.blob_uri.rstrip('/')}/lab2/sensors.csv"
+        adapter.download(remote_data, str(cfg.raw_path))
+
     df = data.load_raw(cfg.raw_path)
+
     fingerprint = data.data_fingerprint(cfg.raw_path)
     train_df, val_df, test_df = data.split(df, seed=seed)
 
     mlflow.set_tracking_uri(cfg.mlflow_tracking_uri)
-    client = MlflowClient()
-    if client.get_experiment_by_name(args.experiment) is None:
-        # The reports directory is mounted by `make reproduce`, so models survive the
-        # container that trained them instead of being written to ephemeral /app/mlruns.
-        artifact_root = (cfg.reports_dir / "mlartifacts").resolve().as_uri()
-        client.create_experiment(args.experiment, artifact_location=artifact_root)
+
+    client = mlflow.MlflowClient()
+    experiment = client.get_experiment_by_name(args.experiment)
+
+    if experiment is None:
+        client.create_experiment(
+            args.experiment,
+            artifact_location=str(cfg.reports_dir / "mlartifacts"),
+        )
+
     mlflow.set_experiment(args.experiment)
 
     with mlflow.start_run(run_name=args.run_name):
@@ -75,6 +103,7 @@ def main() -> None:
             "min_samples_leaf": args.min_samples_leaf,
             "seed": seed,
             "n_features": len(data.FEATURES),
+            "dvc_hash": dvc_hash(),
         })
         # Provenance. This is what makes the metric traceable.
         mlflow.set_tags({
@@ -103,11 +132,34 @@ def main() -> None:
         mlflow.log_metrics(metrics)
         mlflow.sklearn.log_model(model, name="model")
 
-        print(json.dumps({"seed": seed, "data_fingerprint": fingerprint, **metrics}, indent=2))
-        if args.metrics_out:
+        run = mlflow.active_run()
+        run_id = run.info.run_id if run else args.run_name or f"seed-{seed}"
+        model_path = cfg.reports_dir / "model.joblib"
+        joblib.dump(model, model_path)
+
+        model_uri = str(model_path)
+        if adapter is not None:
+            model_uri = adapter.upload(
+                str(model_path),
+                f"lab2/models/{run_id}/model.joblib",
+            )
+
+        result = {
+            "seed": seed,
+            "data_fingerprint": fingerprint,
+            "mlflow_run_id": run_id,
+            "model_uri": model_uri,
+            **metrics,
+        }
+        print(json.dumps(result, indent=2))
+        if args.metrics_out is not None:
             args.metrics_out.parent.mkdir(parents=True, exist_ok=True)
-            args.metrics_out.write_text(json.dumps(
-                {"seed": seed, "data_fingerprint": fingerprint, **metrics}, indent=2))
+            args.metrics_out.write_text(json.dumps(result, indent=2))
+            if adapter is not None:
+                adapter.upload(
+                    str(args.metrics_out),
+                    f"lab2/metrics/{args.metrics_out.name}",
+                )
 
 
 if __name__ == "__main__":

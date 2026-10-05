@@ -146,6 +146,41 @@ class GcpAdapter(CloudAdapter):
         model = self._client('ModelServiceClient').get_model(name=version)
         return {'artifact_uri': model.artifact_uri, 'lineage': json.loads(model.version_description)}
 
+    def get_model_uri(self, name: str, version: str) -> str:
+        from google.cloud import aiplatform
+        aiplatform.init(project=self.cfg.project_id, location=self.cfg.region)
+        models = aiplatform.Model.list(filter=f'display_name="{name}"')
+        if len(models) != 1:
+            raise ValueError(f'Expected one registered model named {name!r}, found {len(models)}')
+        model = aiplatform.Model(model_name=f'{models[0].resource_name}@{version}')
+        artifact_uri = model.gca_resource.artifact_uri
+        if not artifact_uri:
+            raise ValueError(f'Model {name!r} version {version!r} has no artifact URI')
+        return artifact_uri.rstrip('/') + '/model.joblib'
+
+    def deploy(self, model_ref: str, endpoint: str, instance: str) -> str:
+        from google.cloud import aiplatform
+        aiplatform.init(project=self.cfg.project_id, location=self.cfg.region)
+        endpoints = aiplatform.Endpoint.list(filter=f'display_name="{endpoint}"')
+        endpoint_obj = endpoints[0] if endpoints else aiplatform.Endpoint.create(
+            display_name=endpoint, labels=self.cfg.tags(3), sync=True)
+        models = aiplatform.Model.list(filter=f'display_name="{self.cfg.model_registry_name}"')
+        if len(models) != 1:
+            raise ValueError('Expected exactly one registered model container')
+        registered = aiplatform.Model(model_name=f'{models[0].resource_name}@{model_ref}')
+        endpoint_obj.deploy(model=registered, deployed_model_display_name=f'{endpoint}-v{model_ref}',
+                            machine_type=instance, min_replica_count=1, max_replica_count=1,
+                            traffic_percentage=100, sync=True)
+        return endpoint_obj.resource_name
+
+    def invoke(self, endpoint: str, payload: dict[str, Any]) -> dict[str, Any]:
+        client = self._client('PredictionServiceClient')
+        endpoint_name = endpoint if endpoint.startswith('projects/') else f'{self.parent}/endpoints/{endpoint}'
+        response = client.predict(endpoint=endpoint_name, instances=[payload])
+        prediction = list(response.predictions[0])
+        probability = float(prediction[-1])
+        return {'probability': probability, 'model_version': 'managed'}
+
     def teardown(self, tags: dict[str, str]) -> list[str]:
         from google.cloud.aiplatform_v1.types import JobState
         client = self._client('JobServiceClient')
@@ -161,4 +196,12 @@ class GcpAdapter(CloudAdapter):
                     pass
             client.delete_custom_job(name=job.name).result(timeout=300)
             deleted.append(job.name)
+        from google.cloud import aiplatform
+        aiplatform.init(project=self.cfg.project_id, location=self.cfg.region)
+        for endpoint in aiplatform.Endpoint.list():
+            labels = dict(endpoint.gca_resource.labels)
+            if all(labels.get(key) == value for key, value in tags.items()):
+                name = endpoint.resource_name
+                endpoint.delete(force=True, sync=True)
+                deleted.append(name)
         return deleted

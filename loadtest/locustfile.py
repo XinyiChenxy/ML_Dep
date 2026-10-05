@@ -35,6 +35,6 @@ class PredictUser(HttpUser):
     @task(1)
     def predict_batch(self):
         rows = [sample_payload() for _ in range(50)]
-        # TODO(Lab 3): compare this against 50 single calls. Report the difference,
+        # Compare this against 50 single calls and report the difference,
         # and the concurrency at which the advantage disappears.
         self.client.post("/predict/batch", json={"rows": rows})

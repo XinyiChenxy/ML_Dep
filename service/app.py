@@ -35,25 +35,37 @@ def _load_model():
     Loading per request is the commonest cause of a p99 that looks nothing like p50, and
     it is the first thing to check when your latency distribution has a long tail.
     """
-    name = os.environ.get("MODEL_REGISTRY_NAME")
-    version = os.environ.get("MODEL_VERSION")
-    if name and version:
-        import mlflow.sklearn  # imported lazily so tests can run without a registry
-
-        mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db"))
-        return mlflow.sklearn.load_model(f"models:/{name}/{version}")
-
-    # Fallback for local development and tests only. Submitting this is not acceptable:
-    # your deployed service must load a registered version.
     from pathlib import Path
 
     import joblib
 
+    model_uri = os.environ.get("MODEL_ARTIFACT_URI")
+    name = os.environ.get("MODEL_REGISTRY_NAME")
+    version = os.environ.get("MODEL_VERSION")
+
+    if model_uri or (name and version):
+        from cloudlayer.factory import get_adapter
+        from src import config
+
+        cfg = config.load()
+        adapter = get_adapter(cfg)
+
+        if not model_uri:
+            model_uri = adapter.get_model_uri(name, version)
+
+        local_path = Path("/tmp/model.joblib")
+        adapter.download(model_uri, str(local_path))
+
+        return joblib.load(local_path)
+
+    # Local development and tests only.
     path = Path(os.environ.get("MODEL_PATH", "reports/model.joblib"))
     if not path.exists():
         raise RuntimeError(
-            "No model available. Set MODEL_REGISTRY_NAME and MODEL_VERSION, or MODEL_PATH."
+            "No model available. Set MODEL_ARTIFACT_URI, "
+            "MODEL_REGISTRY_NAME and MODEL_VERSION, or MODEL_PATH."
         )
+
     return joblib.load(path)
 
 

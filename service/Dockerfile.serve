@@ -1,13 +1,12 @@
 # ITCS355 Lab 3 — serving image
 #
-# TODO(Lab 3): pin by digest, as you did for the training image in Lab 1.
-FROM python:3.11-slim AS builder
+FROM python@sha256:9534e5a8e315485d4061ed659af0fd78a284c015f9b73661b41d6bab25604534 AS builder
 ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 WORKDIR /build
 COPY requirements-serve.txt ./
 RUN pip install --prefix=/install -r requirements-serve.txt
 
-FROM python:3.11-slim AS runtime
+FROM python@sha256:9534e5a8e315485d4061ed659af0fd78a284c015f9b73661b41d6bab25604534 AS runtime
 RUN useradd --create-home --uid 10001 runner
 ENV PYTHONUNBUFFERED=1 PYTHONPATH=/app
 COPY --from=builder /install /usr/local
@@ -18,7 +17,6 @@ COPY --chown=runner:runner cloudlayer/ ./cloudlayer/
 USER runner
 
 EXPOSE 8080
-# TODO(Lab 3): your provider expects specific health and predict paths.
 #   AWS SageMaker  -> /ping and /invocations
 #   Azure ML       -> configurable liveness route on the deployment
 #   Vertex AI      -> health and predict routes declared on the Model resource

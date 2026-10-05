@@ -5,15 +5,15 @@ SHELL := /bin/bash
 IMAGE ?= itcs355-lab1
 TAG   ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
 PLATFORM ?= linux/amd64
-REQUIREMENTS ?= requirements-gcp.txt
-DOCKERFILE ?= Dockerfile.gcp
+REQUIREMENTS ?= requirements.txt
+DOCKERFILE ?= Dockerfile
 SEED ?= 20260101
 LAB ?= 2
 TUNE_ARGS ?=
 REMOTE_ARGS ?=
 
 .PHONY: help setup cloud-check data test portability-audit train image image-push reproduce verify clean teardown \
-        tune compare reload-check serve serve-image loadtest drift inject-drift pipeline cost swap-check llm-eval llm-gate
+        tune compare reload-check deploy smoke serve serve-image loadtest canary-check drift inject-drift pipeline cost swap-check llm-eval llm-gate
 
 help:
 	@grep -E "^[a-zA-Z_-]+:.*?## .*$$" $(MAKEFILE_LIST) | awk -F":.*?## " "{printf \"  %-20s %s\\n\", \$$1, \$$2}"
@@ -77,6 +77,16 @@ reload-check: ## Load the registered model by version and score rows
 	python scripts/reload_check.py $(if $(VERSION),--version $(VERSION)) $(if $(MODEL_REGISTRY_NAME),--name $(MODEL_REGISTRY_NAME))
 
 # --- Lab 3 -------------------------------------------------------------------
+MODEL_REF ?= 1
+ENDPOINT_NAME ?= itcs355-lab3
+INSTANCE ?= n1-standard-2
+
+deploy: ## Deploy registered model to managed endpoint
+	python -c "from src import config; from cloudlayer.factory import get_adapter; cfg=config.load(); print(get_adapter(cfg).deploy('$(MODEL_REF)', '$(ENDPOINT_NAME)', '$(INSTANCE)'))"
+
+smoke: ## Smoke test deployed endpoint with three known payloads
+	PYTHONPATH=. python scripts/smoke_test.py
+
 serve: ## Run the inference service locally on :8080
 	python scripts/export_model.py --out reports/model.joblib
 	MODEL_PATH=reports/model.joblib MODEL_VERSION=local uvicorn service.app:app --port 8080
@@ -89,6 +99,9 @@ loadtest: ## Load test at three concurrency levels
 	  echo "=== $$vus VUs ==="; \
 	  k6 run -e TARGET=$(TARGET) -e VUS=$$vus loadtest/k6.js || true; \
 	done
+
+canary-check: ## Measure canary quality without reading model-version labels
+	PYTHONPATH=. python scripts/canary_quality_check.py
 
 # --- Lab 4 -------------------------------------------------------------------
 inject-drift: ## Shift a feature's distribution on purpose

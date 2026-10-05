@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-ENV_FILE = REPO_ROOT / "cloud.env"
+ENV_FILE = Path(os.environ.get("SECRET_STORE_PATH", REPO_ROOT / "cloud.env"))
 
 # The eight capability slots every lab depends on. scripts/cloud_check.py resolves each.
 CAPABILITY_SLOTS = (
@@ -35,7 +35,12 @@ def _load_env_file(path: Path = ENV_FILE) -> None:
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, _, value = line.partition("=")
-        os.environ.setdefault(key.strip(), value.strip())
+        value = value.strip()
+        # Support the documented ``KEY=value  # explanation`` form while leaving
+        # URL fragments and hashes without preceding whitespace untouched.
+        if " #" in value:
+            value = value.split(" #", 1)[0].rstrip()
+        os.environ.setdefault(key.strip(), value)
 
 
 _load_env_file()
@@ -51,6 +56,8 @@ class Config:
     mlflow_tracking_uri: str
     model_registry_name: str
     identity_ref: str
+    training_image_uri: str = ""
+    serving_image_uri: str = ""
     data_dir: Path = field(default=REPO_ROOT / "data")
     reports_dir: Path = field(default=REPO_ROOT / "reports")
 
@@ -80,6 +87,8 @@ def load(strict: bool = True) -> Config:
         mlflow_tracking_uri=get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db"),
         model_registry_name=get("MODEL_REGISTRY_NAME", "itcs355"),
         identity_ref=get("IDENTITY_REF", ""),
+        training_image_uri=get("TRAINING_IMAGE_URI", ""),
+        serving_image_uri=get("SERVING_IMAGE_URI", ""),
     )
 
 

@@ -17,10 +17,10 @@ const failures = new Rate('predict_failures');
 export const options = {
   vus: Number(__ENV.VUS || 10),
   duration: __ENV.DURATION || '60s',
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
   thresholds: {
-    // TODO(Lab 3): set YOUR p95 target here, BEFORE you measure.
-    // A target chosen after seeing the numbers is not a target, and this is graded.
-    'predict_latency_ms': ['p(95)<200'],
+    // Predeclared before measurement; override only by committing a deliberate change.
+    'predict_latency_ms': ['p(95)<500'],
     'predict_failures': ['rate<0.01'],
   },
 };
@@ -36,8 +36,11 @@ const payload = JSON.stringify({
 
 export default function () {
   const res = http.post(__ENV.TARGET, payload, {
-    headers: { 'Content-Type': 'application/json' },
-  });
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${__ENV.ACCESS_TOKEN}`,
+  },
+});
   latency.add(res.timings.duration);
   failures.add(res.status !== 200);
   check(res, {

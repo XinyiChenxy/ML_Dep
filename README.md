@@ -135,3 +135,12 @@ course, and rotating it is your responsibility, not the grader's.
 See [GCP setup and lab workflow](docs/lab2-gcp-zh.md) and [measured comparison](reports/lab2-comparison.md). Local rehearsal: `bash scripts/lab2_local.sh`.
 
 In a real organisation, an independent ML platform/release reviewer and model owner should authorize staging promotion after checking validation/test results, seed stability, lineage, cost, reproducible reload and rollback evidence. Training identities should not have production promotion permission. The lab script assigns staging automatically only to demonstrate the workflow.
+
+## Lab 3 — serving and rollback
+
+Build and push the serving image, set its immutable digest in `SERVING_IMAGE_URI`, and deploy with
+`make deploy MODEL_REF=<registered-version>`. Save the returned resource name as
+`ENDPOINT_RESOURCE` in `cloud.env`; `make smoke`, `make loadtest TARGET=<predict-url>`, and
+`make canary-check` then use your endpoint without repository-specific IDs. Record your own
+p50/p95/p99, throughput, errors, canary timestamps, rollback evidence, and cost calculation under
+`reports/`, then run `make teardown LAB=3` immediately to stop endpoint charges.
