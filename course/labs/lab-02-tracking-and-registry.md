@@ -14,7 +14,7 @@ Every `TODO` marker in those files is a graded decision. Everything around them 
 
 ---
 
-> **本项目选用 GCP。** 实作与从零开通步骤见 [GCP 中文指南](../../docs/lab2-gcp-zh.md)，本地实际结果见 [比较报告](../../reports/lab2-comparison.md)。当前未开通云账号，本地演练不等于云端验收完成。
+> **本项目选用 GCP。** 实作与从零开通步骤见 [GCP 中文指南](../../docs/lab2-gcp-zh.md)，比较流程与证据状态见 [比较报告](../../reports/lab2-comparison.md)。当前未开通云账号，本地演练不等于云端验收完成。
 
 ## Objective
 
