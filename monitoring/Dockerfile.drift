@@ -1,0 +1,16 @@
+FROM python@sha256:9534e5a8e315485d4061ed659af0fd78a284c015f9b73661b41d6bab25604534
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app
+
+WORKDIR /app
+
+COPY requirements.txt ./
+RUN pip install --require-hashes -r requirements.txt
+
+COPY src/ ./src/
+COPY cloudlayer/ ./cloudlayer/
+COPY monitoring/ ./monitoring/
+
+ENTRYPOINT ["python", "-m", "monitoring.drift"]

@@ -1,3 +1,8 @@
+# ITCS355 Lab 4 — continuous deployment.
+#
+# Runs only on main, only after CI is green.
+# GCP credentials come from GitHub OIDC Workload Identity Federation.
+
 name: CD
 
 on:
@@ -19,48 +24,103 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
+
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.11"
           cache: pip
+
       - uses: docker/setup-buildx-action@v3
+
+      - name: Install
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # --- GCP ---------------------------------------------------------------
       - uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
           service_account: ${{ secrets.GCP_DEPLOY_SA }}
-      - uses: google-github-actions/setup-gcloud@v2
-      - name: Install locked dependencies
-        run: python -m pip install --require-hashes -r requirements.txt
-      - name: Authenticate Artifact Registry
-        run: gcloud auth configure-docker "${{ vars.REGION }}-docker.pkg.dev" --quiet
-      - name: Build and push immutable serving image
-        env:
-          IMAGE: ${{ vars.CONTAINER_REGISTRY }}/itcs355-serve:${{ github.event.workflow_run.head_sha }}
-        run: docker buildx build --platform linux/amd64 -f service/Dockerfile.serve -t "$IMAGE" --push .
-      - name: Deploy registered model to staging
-        env:
-          CLOUD_PROVIDER: gcp
-          PROJECT_ID: ${{ vars.PROJECT_ID }}
-          REGION: ${{ vars.REGION }}
-          BLOB_URI: ${{ vars.BLOB_URI }}
-          CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
-          MLFLOW_TRACKING_URI: ${{ vars.MLFLOW_TRACKING_URI }}
-          MODEL_REGISTRY_NAME: ${{ vars.MODEL_REGISTRY_NAME }}
-          IDENTITY_REF: ${{ vars.IDENTITY_REF }}
-          MODEL_REF: ${{ vars.STAGING_MODEL_VERSION }}
-          ENDPOINT_NAME: itcs355-staging
-          INSTANCE: n1-standard-2
+
+      - run: gcloud auth configure-docker ${{ vars.REGION }}-docker.pkg.dev
+
+      - name: Build serving image
         run: |
-          endpoint=$(python -c "from src import config; from cloudlayer.factory import get_adapter; c=config.load(); print(get_adapter(c).deploy('$MODEL_REF', '$ENDPOINT_NAME', '$INSTANCE'))")
-          echo "ENDPOINT_RESOURCE=$endpoint" >> "$GITHUB_ENV"
-      - name: Smoke test staging
+          docker buildx build \
+            --platform linux/amd64 \
+            -f service/Dockerfile.serve \
+            -t itcs355-serve:${{ github.event.workflow_run.head_sha }} \
+            --load .
+
+      - name: Push image
+        id: push
         env:
           CLOUD_PROVIDER: gcp
-          PROJECT_ID: ${{ vars.PROJECT_ID }}
+          PROJECT_ID: itcs355-6688176
           REGION: ${{ vars.REGION }}
-          BLOB_URI: ${{ vars.BLOB_URI }}
+          BLOB_URI: gs://itcs355-6688176/itcs355
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
-          MLFLOW_TRACKING_URI: ${{ vars.MLFLOW_TRACKING_URI }}
-          MODEL_REGISTRY_NAME: ${{ vars.MODEL_REGISTRY_NAME }}
-          IDENTITY_REF: ${{ vars.IDENTITY_REF }}
-        run: python scripts/smoke_test.py
+          MLFLOW_TRACKING_URI: sqlite:///mlflow.db
+          MODEL_REGISTRY_NAME: itcs355-6688176
+          IDENTITY_REF: serviceAccount:${{ secrets.GCP_DEPLOY_SA }}
+        run: |
+          IMAGE_URI=$(python -c "from src import config; from cloudlayer.factory import get_adapter; print(get_adapter(config.load()).push_image('itcs355-serve:${{ github.event.workflow_run.head_sha }}'))" | tail -n 1)
+          echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+          echo "$IMAGE_URI"
+
+      - name: Deploy to staging
+        id: deploy
+        env:
+          CLOUD_PROVIDER: gcp
+          PROJECT_ID: itcs355-6688176
+          REGION: ${{ vars.REGION }}
+          BLOB_URI: gs://itcs355-6688176/itcs355
+          CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
+          MLFLOW_TRACKING_URI: sqlite:///mlflow.db
+          MODEL_REGISTRY_NAME: itcs355-6688176
+          IDENTITY_REF: serviceAccount:${{ secrets.GCP_DEPLOY_SA }}
+          SERVING_IMAGE_URI: ${{ steps.push.outputs.image_uri }}
+        run: |
+          set -o pipefail
+          ENDPOINT_RESOURCE=$(python -c "from src import config; from cloudlayer.factory import get_adapter; cfg=config.load(); print(get_adapter(cfg).deploy('1','itcs355-lab4-staging','n1-standard-2'))" | tail -n 1)
+          echo "endpoint_resource=$ENDPOINT_RESOURCE" >> "$GITHUB_OUTPUT"
+          echo "$ENDPOINT_RESOURCE"
+
+      - name: Smoke test
+        env:
+          CLOUD_PROVIDER: gcp
+          PROJECT_ID: itcs355-6688176
+          REGION: ${{ vars.REGION }}
+          BLOB_URI: gs://itcs355-6688176/itcs355
+          CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
+          MLFLOW_TRACKING_URI: sqlite:///mlflow.db
+          MODEL_REGISTRY_NAME: itcs355-6688176
+          IDENTITY_REF: serviceAccount:${{ secrets.GCP_DEPLOY_SA }}
+        run: |
+          PYTHONPATH=. python scripts/smoke_test.py --endpoint "${{ steps.deploy.outputs.endpoint_resource }}"
+
+      - name: Cleanup staging endpoint
+        if: always()
+        run: |
+          ENDPOINT_IDS=$(gcloud ai endpoints list \
+            --region="${{ vars.REGION }}" \
+            --project="itcs355-6688176" \
+            --filter='displayName="itcs355-lab4-staging"' \
+            --format="value(name.basename())")
+
+          for ENDPOINT_ID in $ENDPOINT_IDS; do
+            DEPLOYED_MODEL_IDS=$(gcloud ai endpoints describe "$ENDPOINT_ID" \
+              --region="${{ vars.REGION }}" \
+              --project="itcs355-6688176" \
+              --format="value(deployedModels[].id)")
+
+            for DEPLOYED_MODEL_ID in $DEPLOYED_MODEL_IDS; do
+              gcloud ai endpoints undeploy-model "$ENDPOINT_ID" \
+                --region="${{ vars.REGION }}" \
+                --project="itcs355-6688176" \
+                --deployed-model-id="$DEPLOYED_MODEL_ID" \
+                --quiet
+            done
+          done
+          

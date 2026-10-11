@@ -1,28 +1,69 @@
 {
-  "_comment": "Lab 4 — dashboard as code. Portable Grafana definition; import it, or translate the panels to CloudWatch / Azure Monitor / Cloud Monitoring. Committing the dashboard is better than clicking one together, and is noted favourably.",
+  "_comment": "Lab 4 dashboard definition for GCP. Vertex AI built-in metrics provide request rate, error rate, and latency without adding network calls to the prediction service. PSI is emitted as a custom Cloud Monitoring metric. Model version is available from the structured service logs.",
   "title": "ITCS355 — Prediction service",
   "refresh": "30s",
   "panels": [
-    {"id": 1, "title": "Request rate", "type": "timeseries", "unit": "reqps",
-     "target": "sum(rate(http_requests_total[1m]))"},
-    {"id": 2, "title": "Error rate by class", "type": "timeseries", "unit": "percentunit",
-     "target": "sum by (status_class) (rate(http_requests_total{status_class=~\"4xx|5xx\"}[5m])) / sum(rate(http_requests_total[5m]))",
-     "_note": "4xx and 5xx must be split. 4xx is usually a caller problem; 5xx is yours."},
-    {"id": 3, "title": "Latency p50 / p95 / p99", "type": "timeseries", "unit": "ms",
-     "targets": [
-       "histogram_quantile(0.50, sum by (le) (rate(request_latency_ms_bucket[5m])))",
-       "histogram_quantile(0.95, sum by (le) (rate(request_latency_ms_bucket[5m])))",
-       "histogram_quantile(0.99, sum by (le) (rate(request_latency_ms_bucket[5m])))"
-     ],
-     "_note": "If p99 is far above p95 in a repeating pattern, suspect cold start or a per-request model load."},
-    {"id": 4, "title": "Feature rolling mean", "type": "timeseries",
-     "target": "feature_rolling_mean",
-     "_note": "Rolling mean over the latest 1,000 scored rows, split by feature."},
-    {"id": 5, "title": "Feature drift (PSI)", "type": "timeseries",
-     "target": "drift_psi",
-     "_note": "Hourly reference-vs-production PSI; alert threshold is 0.20."},
-    {"id": 6, "title": "Model version in production", "type": "stat",
-     "target": "model_version_info",
-     "_note": "During a canary you should see two. If you see two when you are not deploying, something is wrong."}
+    {
+      "id": 1,
+      "title": "Request rate",
+      "type": "timeseries",
+      "unit": "reqps",
+      "metric": "aiplatform.googleapis.com/prediction/online/response_count",
+      "aggregation": "rate",
+      "alignment_period": "60s",
+      "_note": "Vertex AI records prediction responses automatically, so monitoring does not add latency to /predict."
+    },
+    {
+      "id": 2,
+      "title": "Error rate by class",
+      "type": "timeseries",
+      "unit": "percent",
+      "metric": "aiplatform.googleapis.com/prediction/online/response_count",
+      "groups": [
+        {
+          "name": "4xx",
+          "filter": "metric.label.response_code=\"4xx\""
+        },
+        {
+          "name": "5xx",
+          "filter": "metric.label.response_code=\"5xx\""
+        }
+      ],
+      "_note": "4xx and 5xx are shown separately because 4xx usually indicates a caller/request problem while 5xx indicates a serving-side failure."
+    },
+    {
+      "id": 3,
+      "title": "Latency p50 / p95 / p99",
+      "type": "timeseries",
+      "unit": "ms",
+      "metric": "aiplatform.googleapis.com/prediction/online/prediction_latencies",
+      "filter": "metric.label.latency_type=\"total\"",
+      "percentiles": [
+        50,
+        95,
+        99
+      ],
+      "_note": "The service SLO requires p95 latency below 500 ms. p99 is also monitored to reveal tail-latency problems."
+    },
+    {
+      "id": 4,
+      "title": "Feature drift — temp_c PSI",
+      "type": "timeseries",
+      "metric": "custom.googleapis.com/itcs355/drift.psi.temp_c",
+      "thresholds": {
+        "moderate": 0.10,
+        "significant": 0.25
+      },
+      "_note": "PSI is calculated by monitoring/drift.py over the current input window against the training reference data and emitted through adapter.emit_metric."
+    },
+    {
+      "id": 5,
+      "title": "Model version in production",
+      "type": "stat",
+      "source": "structured_logs",
+      "field": "model_version",
+      "log_filter": "jsonPayload.msg:model_version",
+      "_note": "The FastAPI service writes model_version in every structured request log. The dashboard should display the most recent production version."
+    }
   ]
 }
