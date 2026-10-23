@@ -1,6 +1,6 @@
 # Labs 3–5 completion audit
 
-**Audited:** 2026-10-23 (Asia/Bangkok)  
+**Audited:** 2026-10-24 (Asia/Bangkok)  
 **Repository:** `XinyiChenxy/ML_Dep`
 
 This audit separates implemented code from external evidence. A checked code item does not turn a
@@ -48,25 +48,27 @@ pending cloud run or screenshot into evidence.
 - [x] SLO includes target, window and error-budget response.
 - [x] Scheduled detector, metric emission, webhook code, drift injection and reasoned five-line local
   post-mortem.
+- [x] Main [CI run `39994453361`](https://github.com/XinyiChenxy/ML_Dep/actions/runs/39994453361)
+  passed on commit `0d6ea64`.
+- [x] GitHub OIDC authenticates through repository-scoped GCP Workload Identity Federation without
+  a long-lived service-account key.
+- [x] Live [scheduled drift run `39996053148`](https://github.com/XinyiChenxy/ML_Dep/actions/runs/39996053148)
+  downloaded both GCS windows, emitted Cloud Monitoring PSI metrics and delivered the breached
+  `temp_c=0.38333` alert to the real Slack `#all-itcs355` channel. The user captured both the green
+  1m39s Actions run and delivered Slack message.
 
 ### Still required externally
 
-- [ ] Push these fixes and obtain a green CI run. The previous main run
-  [`39982013690`](https://github.com/XinyiChenxy/ML_Dep/actions/runs/39982013690) failed only because
-  the scanner target was absent.
-- [ ] Configure GitHub GCP WIF values. Scheduled run
-  [`39961850900`](https://github.com/XinyiChenxy/ML_Dep/actions/runs/39961850900) failed at
-  `google-github-actions/auth@v2`.
 - [x] Deliberately bad [pull request #1](https://github.com/XinyiChenxy/ML_Dep/pull/1) removed
   `temp_c`; the [Actions job](https://github.com/XinyiChenxy/ML_Dep/actions/runs/39986069085/job/120525462831?pr=1)
   recorded `test_schema_columns_present_and_typed` failing with
   `missing columns: ['temp_c']`. Close it without merging after preserving the screenshot.
-- [ ] Configure a real Slack/email webhook, inject drift, and capture the delivered alert plus the
-  dashboard timestamp and detection duration.
+- [ ] Capture the imported Cloud Monitoring dashboard showing the emitted PSI metric at the alert
+  timestamp.
 - [ ] Run teardown and verify the scheduler/endpoint lists are empty.
 
-**Current verdict:** local implementation repaired; required failed-PR and live-alert evidence
-incomplete.
+**Current verdict:** CI blocking, WIF, scheduled drift, metric emission and real-channel alert
+evidence pass; dashboard and teardown evidence remain.
 
 ## Lab 5 — managed operation, portability, cost and LLM controls
 

@@ -1,6 +1,6 @@
 # Lab 4 — injected temperature shift
 
-**What fired:** Local PSI drift alert at `2026-10-05T04:32:22.766470+00:00`; `temp_c` reached 0.38333 against the 0.20 threshold. The external webhook evidence remains pending repository-secret configuration.
+**What fired:** The GCP-backed [scheduled drift run `39996053148`](https://github.com/XinyiChenxy/ML_Dep/actions/runs/39996053148) started at `2026-10-23T17:33:32+00:00` and delivered a real Slack `#all-itcs355` alert at `2026-10-23T17:35:04.873190+00:00`; `temp_c` reached PSI 0.38333 against the 0.20 threshold. Trigger-to-notification latency was about 93 seconds, and the complete GitHub Actions run finished successfully in 1m39s.
 
 **True cause:** A deliberate +6 °C input shift; schema and null checks stayed valid, so this was distribution drift rather than a malformed batch.
 
