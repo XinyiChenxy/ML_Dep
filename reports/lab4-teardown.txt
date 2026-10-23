@@ -1,0 +1,17 @@
+ITCS355 Lab 4 teardown verification
+Verified: 2026-10-24 (Asia/Bangkok)
+Project: project-b9257458-cea1-4ef8-876
+Region: asia-southeast1
+Tags: course=itcs355, student=project-b9257458-cea1-4ef8-876, lab=4
+
+$ make teardown LAB=4
+[]
+
+$ python scripts/teardown_verify.py --lab 4
+searching for resources tagged {'course': 'itcs355', 'student': 'project-b9257458-cea1-4ef8-876', 'lab': '4'}
+
+PASS  nothing found under these tags
+
+Vertex AI Endpoint and Custom Job read-only lists were also empty for the Lab 4 labels before the
+verified teardown. The GitHub scheduled workflow must be disabled separately in the Actions UI so
+the hourly cron does not continue emitting metrics and Slack alerts.

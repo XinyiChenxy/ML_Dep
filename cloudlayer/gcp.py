@@ -369,7 +369,9 @@ class GcpAdapter(CloudAdapter):
             JobState.JOB_STATE_CANCELLED,
             JobState.JOB_STATE_EXPIRED,
         }
-        for job in client.list_custom_jobs(parent=self.parent, filter=query):
+        # Current Vertex SDK exposes ``parent`` as a flattened argument but not
+        # ``filter``; pass both through the request object for version stability.
+        for job in client.list_custom_jobs(request={"parent": self.parent, "filter": query}):
             if job.state not in terminal:
                 client.cancel_custom_job(name=job.name)
             client.delete_custom_job(name=job.name)

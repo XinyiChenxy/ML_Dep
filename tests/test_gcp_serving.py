@@ -1,7 +1,9 @@
 import json
 from datetime import datetime
 from types import SimpleNamespace
+from unittest.mock import Mock
 
+from google.cloud import aiplatform
 from google.cloud import monitoring_v3
 
 from cloudlayer.gcp import GcpAdapter
@@ -65,3 +67,19 @@ def test_emit_metric_uses_supported_timestamp(monkeypatch):
     end_time = captured["series"].points[0].interval.end_time
     assert isinstance(end_time, datetime)
     assert end_time.tzinfo is not None
+
+
+def test_teardown_passes_custom_job_filter_in_request(monkeypatch):
+    client = Mock()
+    client.list_custom_jobs.return_value = []
+    adapter = GcpAdapter(config())
+    monkeypatch.setattr(adapter, "_client", lambda _: client)
+    monkeypatch.setattr(aiplatform, "init", lambda **_: None)
+    monkeypatch.setattr(aiplatform.Endpoint, "list", lambda: [])
+    monkeypatch.setattr(aiplatform.PipelineJobSchedule, "list", lambda: [])
+
+    assert adapter.teardown({"course": "itcs355", "lab": "4"}) == []
+    client.list_custom_jobs.assert_called_once_with(request={
+        "parent": "projects/test-project/locations/asia-southeast1",
+        "filter": 'labels.course="itcs355" AND labels.lab="4"',
+    })

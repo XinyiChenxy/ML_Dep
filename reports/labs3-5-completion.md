@@ -67,10 +67,13 @@ pending cloud run or screenshot into evidence.
   `temp_c`; the [Actions job](https://github.com/XinyiChenxy/ML_Dep/actions/runs/39986069085/job/120525462831?pr=1)
   recorded `test_schema_columns_present_and_typed` failing with
   `missing columns: ['temp_c']`. Close it without merging after preserving the screenshot.
-- [ ] Run teardown and verify the scheduler/endpoint lists are empty.
+- [x] `make teardown LAB=4` returned `[]`; `scripts/teardown_verify.py --lab 4` returned
+  `PASS nothing found`, recorded in `reports/lab4-teardown.txt`.
+- [ ] Disable the GitHub `Scheduled drift detection` workflow after preserving all evidence, so its
+  hourly cron cannot continue emitting metrics and Slack alerts.
 
-**Current verdict:** CI blocking, WIF, scheduled drift, metric emission and real-channel alert
-evidence pass; only teardown evidence remains.
+**Current verdict:** CI blocking, WIF, scheduled drift, metric emission, real-channel alert,
+dashboard and cloud teardown evidence pass; only disabling the GitHub cron remains.
 
 ## Lab 5 — managed operation, portability, cost and LLM controls
 
