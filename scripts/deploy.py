@@ -1,6 +1,9 @@
 """Deploy the gated model version to the staging endpoint."""
 import argparse
 from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from cloudlayer.factory import get_adapter
 from src import config

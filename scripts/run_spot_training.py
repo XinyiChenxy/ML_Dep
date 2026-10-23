@@ -1,4 +1,9 @@
 """Launch the checkpoint-capable Lab 5 training step on Spot compute."""
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from cloudlayer.factory import get_adapter
 from src import config
 

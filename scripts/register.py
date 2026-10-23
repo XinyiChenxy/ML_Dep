@@ -1,6 +1,9 @@
 """Register the gated candidate with lineage from its metrics payload."""
 import json
 from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from cloudlayer.factory import get_adapter
 from src import config
