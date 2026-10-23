@@ -7,6 +7,7 @@ RUN pip install --no-cache-dir --require-hashes -r requirements.txt && useradd -
 COPY --chown=runner:runner src/ ./src/
 COPY --chown=runner:runner cloudlayer/ ./cloudlayer/
 COPY --chown=runner:runner scripts/ ./scripts/
+COPY --chown=runner:runner tests/ ./tests/
 RUN mkdir -p /app/reports /app/data && chown runner:runner /app/reports /app/data
 USER runner
 ENTRYPOINT ["python", "-m", "src.train"]
