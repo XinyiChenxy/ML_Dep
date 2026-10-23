@@ -26,4 +26,6 @@ def test_dashboard_threshold_matches_drift_job():
     drift_workflow = (ROOT / ".github/workflows/drift.yml").read_text()
     assert '"significant": 0.20' in dashboard
     assert '"value": 0.20' in gcp_dashboard
+    assert "custom.googleapis.com/itcs355/drift/psi/temp_c" in dashboard
+    assert "custom.googleapis.com/itcs355/drift/psi/temp_c" in gcp_dashboard
     assert "--threshold 0.20" in drift_workflow

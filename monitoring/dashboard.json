@@ -49,7 +49,7 @@
       "id": 4,
       "title": "Feature drift — temp_c PSI",
       "type": "timeseries",
-      "metric": "custom.googleapis.com/itcs355/drift.psi.temp_c",
+      "metric": "custom.googleapis.com/itcs355/drift/psi/temp_c",
       "thresholds": {
         "moderate": 0.10,
         "significant": 0.20
