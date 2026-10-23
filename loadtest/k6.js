@@ -46,6 +46,7 @@ export default function () {
   check(res, {
     'status is 200': (r) => r.status === 200,
     'probability present': (r) => r.status === 200 && r.json('probability') !== undefined,
-    'version reported': (r) => r.headers['X-Model-Version'] !== undefined,
+    // A managed proxy may strip custom response headers; the response-body contract is portable.
+    'version reported': (r) => r.status === 200 && r.json('model_version') !== undefined,
   });
 }

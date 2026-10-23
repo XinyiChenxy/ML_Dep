@@ -108,6 +108,7 @@ class AzureAdapter(CloudAdapter):
                 return f"{repository}@{digest}"
         raise RuntimeError("docker push succeeded but did not report an image digest")
 
+    # Unselected methods still inherit NotImplementedError from CloudAdapter.
     # submit_training / register_model  -> Lab 2 (Azure ML command job + model registry)
     # deploy / invoke                   -> Lab 3 (managed online endpoint + deployment)
     # emit_metric                       -> Lab 4 (Azure Monitor custom metric)

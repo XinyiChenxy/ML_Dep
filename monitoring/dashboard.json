@@ -52,7 +52,7 @@
       "metric": "custom.googleapis.com/itcs355/drift.psi.temp_c",
       "thresholds": {
         "moderate": 0.10,
-        "significant": 0.25
+        "significant": 0.20
       },
       "_note": "PSI is calculated by monitoring/drift.py over the current input window against the training reference data and emitted through adapter.emit_metric."
     },

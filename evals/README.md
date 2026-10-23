@@ -10,7 +10,7 @@ fixtures/   recorded responses, so the harness runs offline, free, and determini
 Run it:
 
 ```bash
-make llm-eval     # 8 cases against the baseline fixture — everything passes
+make llm-eval     # 12 cases against the baseline fixture — everything passes
 make llm-gate     # the same cases against a degraded set — fails, on purpose
 ```
 

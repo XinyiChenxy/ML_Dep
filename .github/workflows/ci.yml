@@ -43,10 +43,13 @@ jobs:
       - name: Lint
         # ruff is pinned in requirements.txt and installed above. Installing it unpinned
         # here would let a new ruff release fail this build on unchanged code.
-        run: ruff check src/ service/ monitoring/ scripts/ tests/
+        run: ruff check src/ service/ cloudlayer/ monitoring/ scripts/ tests/
 
       - name: Portability audit
         run: python scripts/portability_audit.py
+
+      - name: Unit tests
+        run: pytest -q tests/test_metrics.py tests/test_drift.py
 
       - name: Generate dataset
         run: python scripts/make_dataset.py

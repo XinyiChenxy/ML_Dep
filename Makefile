@@ -16,7 +16,7 @@ RPS ?= 23.9
 SECOND ?= aws
 SECOND_ARGS ?=
 
-.PHONY: help setup cloud-check data test portability-audit train image image-push reproduce verify clean teardown \
+.PHONY: help setup cloud-check data test scan-secrets portability-audit train image image-push reproduce verify clean teardown \
         tune compare reload-check deploy smoke serve serve-image loadtest canary-check drift inject-drift pipeline cost swap-check llm-eval llm-gate teardown-verify
 
 help:
@@ -35,6 +35,9 @@ data: ## Generate the default dataset (deterministic)
 
 test: ## Run data contract and split property tests
 	pytest -q tests/
+
+scan-secrets: ## Scan the complete Git history for committed credentials
+	python scripts/scan_secrets.py
 
 portability-audit: ## Fail if provider strings leak into src/
 	python scripts/portability_audit.py

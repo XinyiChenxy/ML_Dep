@@ -2,11 +2,15 @@
 from __future__ import annotations
 
 import os
+import socket
+import subprocess
+import sys
+import time
 
+import httpx
 import pytest
 
 pytest.importorskip("fastapi")
-from fastapi.testclient import TestClient  # noqa: E402
 
 from src import config, data, seeds  # noqa: E402
 
@@ -34,13 +38,50 @@ def client():
         model_path.parent.mkdir(parents=True, exist_ok=True)
         joblib.dump(model, model_path)
 
-    os.environ["MODEL_PATH"] = str(model_path)
-    os.environ["MODEL_VERSION"] = "test-1"
-    os.environ.pop("MODEL_REGISTRY_NAME", None)
+    env = os.environ.copy()
+    env["MODEL_PATH"] = str(model_path)
+    env["MODEL_VERSION"] = "test-1"
+    env.pop("MODEL_REGISTRY_NAME", None)
+    env.pop("MODEL_ARTIFACT_URI", None)
+    env["NO_PROXY"] = "127.0.0.1,localhost"
+    env["no_proxy"] = "127.0.0.1,localhost"
 
-    from service.app import app
-    with TestClient(app) as c:
+    with socket.socket() as listener:
+        listener.bind(("127.0.0.1", 0))
+        port = listener.getsockname()[1]
+    process = subprocess.Popen(
+        [
+            sys.executable, "-m", "uvicorn", "service.app:app",
+            "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning",
+        ],
+        cwd=config.REPO_ROOT,
+        env=env,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    c = httpx.Client(base_url=f"http://127.0.0.1:{port}", timeout=10, trust_env=False)
+    try:
+        for _ in range(100):
+            if process.poll() is not None:
+                stderr = process.stderr.read() if process.stderr else ""
+                pytest.fail(f"service exited during startup: {stderr}")
+            try:
+                if c.get("/health").status_code == 200:
+                    break
+            except httpx.ConnectError:
+                time.sleep(0.1)
+        else:
+            pytest.fail("service did not become healthy within 10 seconds")
         yield c
+    finally:
+        c.close()
+        process.terminate()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=5)
 
 
 def test_health_and_ready_are_different(client):

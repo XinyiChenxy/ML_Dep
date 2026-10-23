@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import time
 import uuid
@@ -199,12 +200,27 @@ class GcpAdapter(CloudAdapter):
         existing = aiplatform.Model.list(filter=f'display_name="{name}"')
         if len(existing) > 1:
             raise ValueError("Ambiguous model display name")
+        serving_environment = {
+            "CLOUD_PROVIDER": self.cfg.provider,
+            "PROJECT_ID": self.cfg.project_id,
+            "REGION": self.cfg.region,
+            "BLOB_URI": self.cfg.blob_uri,
+            "CONTAINER_REGISTRY": self.cfg.container_registry,
+            "MLFLOW_TRACKING_URI": self.cfg.mlflow_tracking_uri,
+            "MODEL_REGISTRY_NAME": self.cfg.model_registry_name,
+            "IDENTITY_REF": self.cfg.identity_ref,
+            "MODEL_ARTIFACT_URI": model_uri.rstrip("/") + "/model.joblib",
+            # Vertex allocates its numeric version after upload. The run ID is already
+            # immutable and lets responses identify the exact artifact immediately.
+            "MODEL_VERSION": str(lineage["mlflow_run_id"]),
+        }
         model = aiplatform.Model.upload(
             display_name=name,
             artifact_uri=model_uri,
             serving_container_image_uri=serving_image,
             serving_container_predict_route="/predict",
             serving_container_health_route="/health",
+            serving_container_environment_variables=serving_environment,
             parent_model=existing[0].resource_name if existing else None,
             version_description=json.dumps(lineage, sort_keys=True),
             version_aliases=["candidate"],
@@ -241,7 +257,7 @@ class GcpAdapter(CloudAdapter):
         aiplatform.init(project=self.cfg.project_id, location=self.cfg.region)
         endpoints = aiplatform.Endpoint.list(filter=f'display_name="{endpoint}"')
         endpoint_obj = endpoints[0] if endpoints else aiplatform.Endpoint.create(
-            display_name=endpoint, labels=self.cfg.tags(5), sync=True
+            display_name=endpoint, labels=self.cfg.tags(self._lab_from_endpoint(endpoint)), sync=True
         )
         models = aiplatform.Model.list(
             filter=f'display_name="{self.cfg.model_registry_name}"'
@@ -262,14 +278,36 @@ class GcpAdapter(CloudAdapter):
         )
         return endpoint_obj.resource_name
 
+    @staticmethod
+    def _lab_from_endpoint(endpoint: str) -> int:
+        """Keep teardown labels aligned with the lab that created an endpoint."""
+        match = re.search(r"(?:^|-)lab([2-5])(?:-|$)", endpoint.lower())
+        return int(match.group(1)) if match else 3
+
     def invoke(self, endpoint: str, payload: dict[str, Any]) -> dict[str, Any]:
+        from google.api import httpbody_pb2
+
         client = self._client("PredictionServiceClient")
         endpoint_name = endpoint if endpoint.startswith("projects/") else (
             f"{self.parent}/endpoints/{endpoint}"
         )
-        response = client.predict(endpoint=endpoint_name, instances=[payload])
-        prediction = list(response.predictions[0])
-        return {"probability": float(prediction[-1]), "model_version": "managed"}
+        # RawPredict preserves the provider-neutral FastAPI request/response contract.
+        # Standard Predict wraps requests in {"instances": ...}, which would couple the
+        # service schema to Vertex and make the same container unusable elsewhere.
+        response = client.raw_predict(
+            endpoint=endpoint_name,
+            http_body=httpbody_pb2.HttpBody(
+                content_type="application/json",
+                data=json.dumps(payload).encode("utf-8"),
+            ),
+        )
+        result = json.loads(response.data.decode("utf-8"))
+        if not isinstance(result, dict) or "probability" not in result:
+            raise ValueError("Managed endpoint returned an invalid prediction response")
+        return {
+            "probability": float(result["probability"]),
+            "model_version": str(result.get("model_version", "unknown")),
+        }
 
     def emit_metric(self, name: str, value: float, unit: str = "1") -> None:
         from google.cloud import monitoring_v3

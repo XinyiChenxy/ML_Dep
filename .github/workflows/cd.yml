@@ -43,6 +43,8 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
           service_account: ${{ secrets.GCP_DEPLOY_SA }}
 
+      - uses: google-github-actions/setup-gcloud@v2
+
       - run: gcloud auth configure-docker ${{ vars.REGION }}-docker.pkg.dev
 
       - name: Build serving image
@@ -57,12 +59,12 @@ jobs:
         id: push
         env:
           CLOUD_PROVIDER: gcp
-          PROJECT_ID: itcs355-6688176
+          PROJECT_ID: ${{ vars.PROJECT_ID }}
           REGION: ${{ vars.REGION }}
-          BLOB_URI: gs://itcs355-6688176/itcs355
+          BLOB_URI: ${{ vars.BLOB_URI }}
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
-          MLFLOW_TRACKING_URI: sqlite:///mlflow.db
-          MODEL_REGISTRY_NAME: itcs355-6688176
+          MLFLOW_TRACKING_URI: ${{ vars.MLFLOW_TRACKING_URI }}
+          MODEL_REGISTRY_NAME: ${{ vars.MODEL_REGISTRY_NAME }}
           IDENTITY_REF: serviceAccount:${{ secrets.GCP_DEPLOY_SA }}
         run: |
           IMAGE_URI=$(python -c "from src import config; from cloudlayer.factory import get_adapter; print(get_adapter(config.load()).push_image('itcs355-serve:${{ github.event.workflow_run.head_sha }}'))" | tail -n 1)
@@ -73,12 +75,12 @@ jobs:
         id: deploy
         env:
           CLOUD_PROVIDER: gcp
-          PROJECT_ID: itcs355-6688176
+          PROJECT_ID: ${{ vars.PROJECT_ID }}
           REGION: ${{ vars.REGION }}
-          BLOB_URI: gs://itcs355-6688176/itcs355
+          BLOB_URI: ${{ vars.BLOB_URI }}
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
-          MLFLOW_TRACKING_URI: sqlite:///mlflow.db
-          MODEL_REGISTRY_NAME: itcs355-6688176
+          MLFLOW_TRACKING_URI: ${{ vars.MLFLOW_TRACKING_URI }}
+          MODEL_REGISTRY_NAME: ${{ vars.MODEL_REGISTRY_NAME }}
           IDENTITY_REF: serviceAccount:${{ secrets.GCP_DEPLOY_SA }}
           SERVING_IMAGE_URI: ${{ steps.push.outputs.image_uri }}
         run: |
@@ -90,12 +92,12 @@ jobs:
       - name: Smoke test
         env:
           CLOUD_PROVIDER: gcp
-          PROJECT_ID: itcs355-6688176
+          PROJECT_ID: ${{ vars.PROJECT_ID }}
           REGION: ${{ vars.REGION }}
-          BLOB_URI: gs://itcs355-6688176/itcs355
+          BLOB_URI: ${{ vars.BLOB_URI }}
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
-          MLFLOW_TRACKING_URI: sqlite:///mlflow.db
-          MODEL_REGISTRY_NAME: itcs355-6688176
+          MLFLOW_TRACKING_URI: ${{ vars.MLFLOW_TRACKING_URI }}
+          MODEL_REGISTRY_NAME: ${{ vars.MODEL_REGISTRY_NAME }}
           IDENTITY_REF: serviceAccount:${{ secrets.GCP_DEPLOY_SA }}
         run: |
           PYTHONPATH=. python scripts/smoke_test.py --endpoint "${{ steps.deploy.outputs.endpoint_resource }}"
@@ -105,22 +107,27 @@ jobs:
         run: |
           ENDPOINT_IDS=$(gcloud ai endpoints list \
             --region="${{ vars.REGION }}" \
-            --project="itcs355-6688176" \
+            --project="${{ vars.PROJECT_ID }}" \
             --filter='displayName="itcs355-lab4-staging"' \
             --format="value(name.basename())")
 
           for ENDPOINT_ID in $ENDPOINT_IDS; do
             DEPLOYED_MODEL_IDS=$(gcloud ai endpoints describe "$ENDPOINT_ID" \
               --region="${{ vars.REGION }}" \
-              --project="itcs355-6688176" \
+              --project="${{ vars.PROJECT_ID }}" \
               --format="value(deployedModels[].id)")
 
             for DEPLOYED_MODEL_ID in $DEPLOYED_MODEL_IDS; do
               gcloud ai endpoints undeploy-model "$ENDPOINT_ID" \
                 --region="${{ vars.REGION }}" \
-                --project="itcs355-6688176" \
+                --project="${{ vars.PROJECT_ID }}" \
                 --deployed-model-id="$DEPLOYED_MODEL_ID" \
                 --quiet
             done
+
+            gcloud ai endpoints delete "$ENDPOINT_ID" \
+              --region="${{ vars.REGION }}" \
+              --project="${{ vars.PROJECT_ID }}" \
+              --quiet
           done
-          
+
