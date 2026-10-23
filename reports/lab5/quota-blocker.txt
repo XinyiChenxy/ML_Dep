@@ -1,0 +1,41 @@
+Lab 5 Vertex AI quota blocker evidence
+
+Checked: 2026-10-23 (Asia/Bangkok)
+Project: project-b9257458-cea1-4ef8-876
+Location: asia-southeast1
+
+Failed pipeline run
+-------------------
+Pipeline job ID: itcs355-training-pipeline-20261023223720
+Console: https://console.cloud.google.com/vertex-ai/locations/asia-southeast1/pipelines/runs/itcs355-training-pipeline-20261023223720?project=project-b9257458-cea1-4ef8-876
+Final state: PIPELINE_STATE_FAILED
+Failed task: ingest
+Blocking quota metric: aiplatform.googleapis.com/custom_model_training_cpus
+Quota limit: CustomModelTrainingCPUsPerProjectPerRegion
+Effective regional limit observed: 1 CPU
+
+Quota increase request
+----------------------
+Resource: projects/project-b9257458-cea1-4ef8-876/locations/global/quotaPreferences/itcs355-custom-training-cpus-asia-se1
+Region dimension: asia-southeast1
+Requested preferred value: 4
+Granted value: 1
+Created: 2026-10-23T15:44:02.267194133Z
+Updated: 2026-10-23T15:44:04.572742260Z
+Google state detail: We cannot grant the preferred quota '4' for limit
+'CustomModelTrainingCPUsPerProjectPerRegion' in service 'aiplatform.googleapis.com'
+at this moment. '1' was granted.
+
+Resource safety check
+---------------------
+Vertex AI Custom Jobs listed in asia-southeast1: none
+Vertex AI Endpoints listed in asia-southeast1: none
+Pipeline schedule 5501432817856282624: PAUSED (see schedule-evidence.txt)
+
+Conclusion
+----------
+The Lab 5 implementation and compiled six-step pipeline are present, but this new/free-trial
+project cannot start even the first managed KFP container task under the granted regional custom
+training CPU quota. This file records a real quota-blocked run; it is not pipeline-success evidence.
+Do not claim the managed pipeline passed until a later run completes after sufficient quota is
+granted.

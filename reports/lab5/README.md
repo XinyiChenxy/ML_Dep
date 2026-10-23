@@ -20,3 +20,11 @@ Completed cloud evidence:
 
 - `schedule-evidence.txt`: schedule resource name, timezone, identity, concurrency and verified
   `PAUSED` state.
+- `quota-blocker.txt`: real failed Vertex run, the exact custom-training CPU quota, Google's
+  4-CPU request/1-CPU grant response, and a check confirming no Custom Jobs or Endpoints remain.
+
+Current cloud blocker:
+
+- The project has only 1 regional Vertex custom-training CPU and Google declined the request for
+  4. The six-step pipeline cannot produce `pipeline-success.txt` until the account becomes eligible
+  for a sufficient quota increase. Do not replace this limitation with copied reference evidence.
