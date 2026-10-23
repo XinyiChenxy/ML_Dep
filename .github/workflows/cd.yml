@@ -82,6 +82,7 @@ jobs:
           MLFLOW_TRACKING_URI: ${{ vars.MLFLOW_TRACKING_URI }}
           MODEL_REGISTRY_NAME: ${{ vars.MODEL_REGISTRY_NAME }}
           IDENTITY_REF: serviceAccount:${{ secrets.GCP_DEPLOY_SA }}
+          SERVING_SERVICE_ACCOUNT: itcs355-serving@${{ vars.PROJECT_ID }}.iam.gserviceaccount.com
           SERVING_IMAGE_URI: ${{ steps.push.outputs.image_uri }}
         run: |
           set -o pipefail
