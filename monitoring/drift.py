@@ -179,7 +179,9 @@ def main() -> int:
         print("Before you retrain: is this drift, or is it a broken upstream pipeline? "
               "Retraining on corrupted data destroys a working model faster than any "
               "schedule would.")
-        return 2
+        # A delivered alert is a successful monitoring run. Keep a non-zero exit
+        # only when drift was detected but no notification channel was configured.
+        return 0 if args.webhook_url else 2
     print(f"\nOK  no feature above threshold {args.threshold}")
     return 0
 
