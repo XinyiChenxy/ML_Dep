@@ -14,7 +14,16 @@ the bad producer change did not ship.
 - Observed failure: `AssertionError: missing columns: ['temp_c']`
 - Workflow outcome: 3 data tests failed, 7 passed; model-behaviour/service tests and image build
   were skipped after the contract gate exited with code 1.
-- Pull-request outcome: close without merging after preserving the Actions log and screenshot.
+- Pull-request outcome: closed without merging after preserving the Actions log and screenshot.
+
+## Screenshots
+
+The failed job shows the red `Data contract tests` step and the skipped downstream model/service
+steps. The second image shows pull request #1 in the `Closed` state.
+
+![Data contract failure blocked downstream CI](lab4-blocked-commit.png)
+
+![Pull request closed without merging](lab4-pr-closed.png)
 
 Do not replace these fields with invented evidence. A real failed Actions run is part of the Lab 4
 acceptance criteria.
