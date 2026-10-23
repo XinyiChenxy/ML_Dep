@@ -65,6 +65,8 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--metrics-out", type=Path, default=None,
                    help="Write final metrics as JSON. Used by `make verify`.")
+    p.add_argument("--artifact-prefix", default="lab2",
+                   help="Provider-neutral object prefix for remote input and outputs.")
     return p.parse_args()
 
 
@@ -75,7 +77,7 @@ def main() -> None:
     seed = seeds.set_all(args.seed)
 
     if not cfg.raw_path.exists() and adapter is not None:
-        remote_data = f"{cfg.blob_uri.rstrip('/')}/lab2/sensors.csv"
+        remote_data = f"{cfg.blob_uri.rstrip('/')}/{args.artifact_prefix}/raw/sensors.csv"
         adapter.download(remote_data, str(cfg.raw_path))
 
     df = data.load_raw(cfg.raw_path)
@@ -141,7 +143,7 @@ def main() -> None:
         if adapter is not None:
             model_uri = adapter.upload(
                 str(model_path),
-                f"lab2/models/{run_id}/model.joblib",
+                f"{args.artifact_prefix}/models/{run_id}/model.joblib",
             )
 
         result = {
@@ -151,6 +153,30 @@ def main() -> None:
             "model_uri": model_uri,
             **metrics,
         }
+        if adapter is not None:
+            training_job_id = (
+                adapter.training_job_id()
+                if hasattr(adapter, "training_job_id") and os.environ.get("JOB_CONTEXT_URI")
+                else "unknown"
+            )
+            lineage = {
+                "git_commit": git_commit(),
+                "data_version": fingerprint,
+                "mlflow_run_id": run_id,
+                "training_job_id": training_job_id,
+                "image_digest": os.environ.get("IMAGE_DIGEST", "unknown"),
+                "seed": str(seed),
+                "metric_val": str(metrics["val_roc_auc"]),
+                "metric_test": str(metrics["test_roc_auc"]),
+            }
+            lineage_path = cfg.reports_dir / "lineage.json"
+            lineage_path.write_text(json.dumps(lineage, indent=2))
+            adapter.upload(
+                str(lineage_path),
+                f"{args.artifact_prefix}/models/{run_id}/lineage.json",
+            )
+            result["training_job_id"] = training_job_id
+            result["image_digest"] = lineage["image_digest"]
         print(json.dumps(result, indent=2))
         if args.metrics_out is not None:
             args.metrics_out.parent.mkdir(parents=True, exist_ok=True)
@@ -158,7 +184,7 @@ def main() -> None:
             if adapter is not None:
                 adapter.upload(
                     str(args.metrics_out),
-                    f"lab2/metrics/{args.metrics_out.name}",
+                    f"{args.artifact_prefix}/metrics/{args.metrics_out.name}",
                 )
 
 

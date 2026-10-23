@@ -16,6 +16,7 @@ Hints for Lab 1:
 from __future__ import annotations
 
 import base64
+import json
 import subprocess
 from pathlib import Path
 from urllib.parse import urlparse
@@ -73,8 +74,25 @@ class AwsAdapter(CloudAdapter):
             imageIds=[{"imageTag": remote_tag.rsplit(":", 1)[-1]}])["imageDetails"][0]["imageDigest"]
         return f"{registry}@{digest}"
 
+    def invoke(self, endpoint: str, payload: dict) -> dict:
+        """Normalize SageMaker Runtime's streaming response to the adapter contract."""
+        import boto3
+
+        response = boto3.client(
+            "sagemaker-runtime", region_name=self.cfg.region
+        ).invoke_endpoint(
+            EndpointName=endpoint,
+            ContentType="application/json",
+            Accept="application/json",
+            Body=json.dumps(payload).encode("utf-8"),
+        )
+        result = json.loads(response["Body"].read().decode("utf-8"))
+        if not isinstance(result, dict):
+            raise ValueError("SageMaker endpoint must return a JSON object")
+        return result
+
     # submit_training / register_model  -> Lab 2 (SageMaker training job + model package group)
-    # deploy / invoke                   -> Lab 3 (SageMaker real-time endpoint)
+    # deploy                            -> Lab 3 (SageMaker real-time endpoint)
     # emit_metric                       -> Lab 4 (CloudWatch put_metric_data)
     # generate                          -> Lab 5 (managed LLM endpoint; read the usage block for tokens)
     # teardown                          -> Lab 5 (resourcegroupstaggingapi to find by tag)

@@ -164,3 +164,81 @@ injected spread fault crosses 0.20; this tighter-than-credit-scoring threshold i
 operational sensors because waiting for 0.25 risks consuming a maintenance cycle before detection.
 An alert is not an automatic retraining trigger: schema, range, or null failures indicate an
 upstream pipeline incident that must be fixed and backfilled before any retraining.
+
+## Lab 5 — managed operation and LLM controls
+
+### Pipeline and evaluation policy
+
+`make pipeline` compiles the neutral six-step DAG to Vertex/Kubeflow JSON. Ingest uploads the
+versioned dataset, validation aborts on contract failure, training uses Spot compute, and the
+evaluation component writes a real `pass`/`fail` output. Registration and staging deployment live
+inside a `dsl.If(decision == "pass")` branch. A candidate must reach test ROC-AUC **0.75** and,
+when an incumbent is supplied, improve by at least **0.002**. The absolute floor protects the first
+registration; the improvement margin avoids promotion on reported-decimal noise.
+
+### Least-privilege identities
+
+Exact identity references are injected through `cloud.env` and are not committed.
+
+| Identity | Allowed scope | Why it is required |
+|---|---|---|
+| Training/pipeline service account | Read the Lab 5 input prefix; write Lab 5 model, metric, checkpoint and pipeline-root prefixes; create and observe Vertex jobs; emit metrics | Runs the managed DAG and persists reproducible lineage without serving permissions |
+| Serving service account | Read only the selected model artifact; write service logs and metrics | Loads the model and exposes predictions without changing training data or registry state |
+| GitHub OIDC CI service account | Push immutable images, submit the pipeline and deploy staging while impersonating only the serving identity | Automates releases without a stored service-account key or data access |
+
+The assessed permission-removal experiment must be run on this project: read the chosen model as
+the serving identity, remove its object-view permission, repeat and preserve the observed 403, then
+restore the permission. This repository does not claim that expected 403 as observed evidence.
+Save the command output under `reports/lab5/iam-removal.txt` before submission.
+
+### Retraining trigger
+
+The selected schedule is **Sunday 02:00 Asia/Bangkok**, with one concurrent run. The schedule
+should remain paused outside the evidence run so it cannot create an unnoticed bill.
+
+| Strategy | When it is right for this failure-prediction system | How it fails |
+|---|---|---|
+| Weekly fixed schedule | Predictable sensor refresh cadence and a bounded, auditable training bill | Wastes a run during stable weeks and can wait nearly seven days after a genuine change |
+| Data-volume threshold | Enough new machines have accumulated to support a fresh group split | Duplicated, noisy or single-machine readings can meet the count without adding information |
+| Drift-triggered | Valid sensor distributions move materially and urgent adaptation is justified | A broken sensor or unit conversion looks like drift and can rapidly train bad data into a working model |
+
+We choose the weekly schedule plus mandatory data contracts and the evaluation gate. Worst case:
+corrupted upstream data arrives just before Sunday and destroys a good model. Contract failure must
+therefore abort before training, and passing drift alone never authorizes promotion.
+
+### Portability result and honest verdict
+
+`make portability-audit` checks that provider SDKs and resource strings stay outside Layer 1.
+The second adapter is AWS: `upload`, `download`, and `invoke` are exercised offline in
+`tests/test_aws_portability.py`; a real-account run of `make swap-check SECOND=aws` remains required
+for cloud evidence. Set `SECOND_BLOB_URI`, `SECOND_REGION`, `SECOND_PROJECT_ID`, and
+`SECOND_ENDPOINT` in the uncommitted `cloud.env` before that run.
+
+`invoke` was hardest because SageMaker uses a named endpoint, a byte-stream body and a response
+envelope different from Vertex raw prediction. The abstraction genuinely leaks through resource
+configuration: changing `CLOUD_PROVIDER` cannot turn a GCS URI into an S3 URI or provision a
+compatible endpoint. A small production migration would take roughly **5–10 engineering days**
+for IAM, S3/ECR, SageMaker training and serving, CI, monitoring, integration tests and cleanup.
+The seam is worth keeping for storage and a stable prediction response, but it is not automatic
+multi-cloud portability; for a permanently single-cloud service, the extra adapters may cost more
+than deliberate lock-in.
+
+### LLM golden set and guardrail
+
+The machine-maintenance triage set contains **12 cases**, including grounding, refusal, injection
+inside data fields, and insufficient input. `make llm-eval` records the deterministic baseline;
+`make llm-gate` deliberately regresses borderline escalation, invents a part and date, obeys
+injected data, leaks hidden instructions, and must exit non-zero on the per-case comparison.
+
+The most expensive guardrail failure is an injected or disclosure request influencing a work order
+or exposing credentials. Cases `triage-006`, `triage-007`, `triage-010`, and `triage-011` enforce
+refusal and data/instruction separation. Reproduce the control with:
+
+```bash
+make llm-gate   # expected non-zero: the guardrail regression is caught
+```
+
+Offline fixtures are test evidence, not token-billing evidence. A live Vertex run reads
+`usage_metadata` in `GcpAdapter.generate`; only `reports/llm_eval-live.json` may supply measured
+token counts to `make cost`. The generated [Lab 5 cost report](reports/lab5-cost.md) keeps billing,
+IAM, managed-run and teardown evidence visibly pending until they are collected from this project.

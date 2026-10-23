@@ -17,17 +17,16 @@ Three levers move an LLM bill, in the order they are worth pulling:
                       is an evaluation question, not a pricing one — which is why
                       scripts/llm_eval.py exists and why you run it before you switch.
 
-Prices are THB per 1,000,000 tokens. They change often and differ by region.
-
-TODO(Lab 5): verify every rate below against your provider's pricing page for YOUR region
-before you cite a cost figure. Record the date you checked in your cost report. A stale
-price presented as current is exactly what the report is designed to catch.
+Prices are THB per 1,000,000 tokens. The table below is the course planning reference,
+not a current provider quote. The cost report refuses to present fixture usage as a measured
+bill; before submission, verify the selected model/region price and record that source beside
+the provider-reported live token counts.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-# THB per 1,000,000 tokens: (input, output).
+# Course-reference THB per 1,000,000 tokens: (input, output).
 TOKEN_PRICE_TABLE: dict[str, dict[str, tuple[float, float]]] = {
     "local": {"stub": (0.0, 0.0)},
     "aws": {

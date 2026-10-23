@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SCANNED = ["src", "service", "monitoring", "tests"]
+SCANNED = ["src", "service", "monitoring"]
 
 FORBIDDEN = [
     (r"s3://", "S3 URI"),

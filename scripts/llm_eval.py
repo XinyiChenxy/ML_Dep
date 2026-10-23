@@ -123,7 +123,7 @@ def percentile(values: list[float], pct: float) -> float:
     return ordered[idx]
 
 
-def summarise(results: list[dict], provider: str, model: str) -> dict:
+def summarise(results: list[dict], provider: str, model: str, usage_verified: bool) -> dict:
     total = len(results)
     passed = sum(1 for r in results if r["passed"])
     in_tok = sum(r.get("input_tokens", 0) for r in results)
@@ -141,7 +141,11 @@ def summarise(results: list[dict], provider: str, model: str) -> dict:
         "p95_latency_ms": percentile([r.get("latency_ms", 0) for r in results], 95),
         "avg_input_tokens": avg.input_tokens,
         "avg_output_tokens": avg.output_tokens,
-        "thb_per_1k_requests": round(llmcost.cost_per_1k_requests(provider, model, avg), 4),
+        "usage_source": "provider" if usage_verified else "offline_fixture_not_billing_evidence",
+        "thb_per_1k_requests": (
+            round(llmcost.cost_per_1k_requests(provider, model, avg), 4)
+            if usage_verified else None
+        ),
         "results": results,
     }
 
@@ -189,7 +193,7 @@ def main() -> int:
     else:
         responses = read_jsonl(args.responses)
 
-    report = summarise(score(golden, responses), args.provider, args.model)
+    report = summarise(score(golden, responses), args.provider, args.model, args.live)
 
     print(f"golden set  {args.golden.name}  ({report['cases']} cases)")
     for r in report["results"]:
@@ -200,8 +204,11 @@ def main() -> int:
     print(f"\npass rate           {report['passed']}/{report['cases']}"
           f"  ({report['pass_rate'] * 100:.1f}%)")
     print(f"p95 latency         {report['p95_latency_ms']} ms")
-    print(f"cost per 1k reqs    {report['thb_per_1k_requests']} THB"
-          f"  ({report['provider']}/{report['model']})")
+    if args.live:
+        print(f"cost per 1k reqs    {report['thb_per_1k_requests']} THB"
+              f"  ({report['provider']}/{report['model']})")
+    else:
+        print("cost per 1k reqs    not reported — fixture usage is not billing evidence")
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, indent=2) + "\n")
@@ -213,7 +220,7 @@ def main() -> int:
 
 
 def generate_live(golden: list[dict]) -> list[dict]:
-    """TODO(Lab 5): route each prompt through your adapter's `generate`.
+    """Route each prompt through the selected adapter's managed LLM.
 
     Record input_tokens, output_tokens and latency_ms from the provider's own usage
     fields — do not estimate them by counting words. Every provider tokenises
@@ -225,7 +232,11 @@ def generate_live(golden: list[dict]) -> list[dict]:
     adapter = get_adapter(config.load())
     rows = []
     for case in golden:
-        result = adapter.generate(case["prompt"], {"max_output_tokens": 200})
+        result = adapter.generate(case["prompt"], {
+            "max_output_tokens": 64,
+            "temperature": 0.0,
+            "response_mime_type": "application/json",
+        })
         rows.append({"id": case["id"], **result})
     return rows
 

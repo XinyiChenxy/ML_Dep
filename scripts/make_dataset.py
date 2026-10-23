@@ -10,6 +10,7 @@ grouped by machine_id. See src/data.split.
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 
 import numpy as np
@@ -71,6 +72,13 @@ def main() -> None:
     df.to_csv(args.out, index=False, lineterminator="\n")
     rate = df["failed_within_7d"].mean()
     print(f"wrote {args.out}  rows={len(df)}  machines={df.machine_id.nunique()}  positive_rate={rate:.3f}")
+    if os.environ.get("PIPELINE_UPLOAD") == "1":
+        from cloudlayer.factory import get_adapter
+        from src import config
+
+        cfg = config.load()
+        uri = get_adapter(cfg).upload(str(args.out), "lab5/raw/sensors.csv")
+        print(f"uploaded {uri}")
 
 
 if __name__ == "__main__":

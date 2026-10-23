@@ -15,8 +15,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-# TODO(Lab 5): choose and defend these. A margin of zero means noise gets promoted;
-# too large a margin means real improvements never ship.
+# The absolute floor prevents a weak first model from being registered. The 0.002
+# improvement margin is larger than the last decimal place we report and avoids promoting
+# an incumbent replacement on rounding noise. Both values are documented in the README.
 MIN_ABSOLUTE = 0.75
 MIN_IMPROVEMENT = 0.002
 
@@ -27,7 +28,26 @@ def main() -> int:
     ap.add_argument("--metric", default="test_roc_auc")
     ap.add_argument("--incumbent", type=float, default=None,
                     help="current production score; omit to read from the registry")
+    ap.add_argument("--decision-out", type=Path,
+                    help="KFP output parameter. Writes pass/fail and exits successfully.")
     args = ap.parse_args()
+
+    def finish(passed: bool) -> int:
+        if args.decision_out:
+            args.decision_out.parent.mkdir(parents=True, exist_ok=True)
+            args.decision_out.write_text("pass" if passed else "fail")
+            return 0
+        return 0 if passed else 1
+
+    if not args.metrics.exists():
+        from cloudlayer.factory import get_adapter
+        from src import config
+
+        cfg = config.load()
+        get_adapter(cfg).download(
+            f"{cfg.blob_uri.rstrip('/')}/lab5/metrics/{args.metrics.name}",
+            str(args.metrics),
+        )
 
     payload = json.loads(args.metrics.read_text())
     candidate = float(payload[args.metric])
@@ -35,24 +55,24 @@ def main() -> int:
 
     if candidate < MIN_ABSOLUTE:
         print(f"GATE FAIL  below absolute floor {MIN_ABSOLUTE}")
-        return 1
+        return finish(False)
 
     incumbent = args.incumbent
     if incumbent is None:
-        # TODO(Lab 5): read the production version's metric from the registry instead of
-        # assuming there is no incumbent. A first run legitimately has none.
-        print("no incumbent supplied — treating as first registration")
+        # A first registration has no incumbent. Subsequent managed runs should inject
+        # the current production score through --incumbent.
+        print("no incumbent supplied — first-registration policy applies")
         print("GATE PASS")
-        return 0
+        return finish(True)
 
     delta = candidate - incumbent
     print(f"incumbent {incumbent:.4f}  delta {delta:+.4f}  required {MIN_IMPROVEMENT:+.4f}")
     if delta < MIN_IMPROVEMENT:
         print("GATE FAIL  improvement within noise; not registering")
-        return 1
+        return finish(False)
 
     print("GATE PASS")
-    return 0
+    return finish(True)
 
 
 if __name__ == "__main__":

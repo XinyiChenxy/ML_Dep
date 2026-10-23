@@ -11,9 +11,13 @@ SEED ?= 20260101
 LAB ?= 2
 TUNE_ARGS ?=
 REMOTE_ARGS ?=
+EST ?= 25
+RPS ?= 23.9
+SECOND ?= aws
+SECOND_ARGS ?=
 
 .PHONY: help setup cloud-check data test portability-audit train image image-push reproduce verify clean teardown \
-        tune compare reload-check deploy smoke serve serve-image loadtest canary-check drift inject-drift pipeline cost swap-check llm-eval llm-gate
+        tune compare reload-check deploy smoke serve serve-image loadtest canary-check drift inject-drift pipeline cost swap-check llm-eval llm-gate teardown-verify
 
 help:
 	@grep -E "^[a-zA-Z_-]+:.*?## .*$$" $(MAKEFILE_LIST) | awk -F":.*?## " "{printf \"  %-20s %s\\n\", \$$1, \$$2}"
@@ -124,10 +128,13 @@ llm-gate: ## Prove the gate fails on a degraded set — expected to exit non-zer
 	  --out reports/llm_eval.json --baseline reports/llm_eval-baseline.json
 
 cost: ## Build the cost report
-	python scripts/cost_report.py --estimate $(EST) --actual $(ACT) --rps $(RPS) --instance $(INSTANCE)
+	python scripts/cost_report.py --estimate $(EST) $(if $(ACT),--actual $(ACT)) --rps $(RPS) --instance $(INSTANCE)
 
 swap-check: ## Prove the portability seam against a second provider
-	python scripts/portability_swap_check.py --second-provider $(SECOND)
+	python scripts/portability_swap_check.py --second-provider $(SECOND) $(SECOND_ARGS)
+
+teardown-verify: ## Re-check Lab 5 resources after asynchronous teardown
+	python scripts/teardown_verify.py --lab 5
 
 .PHONY: train-remote register image-gcp cost-report
 train-remote: ## Submit a GCP Spot study (set REMOTE_ARGS)

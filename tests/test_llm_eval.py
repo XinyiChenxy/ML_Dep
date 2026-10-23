@@ -42,6 +42,7 @@ def test_golden_set_is_wellformed():
         assert case["checks"], f"{case['id']} asserts nothing, so it can never fail"
         ids.append(case["id"])
     assert len(ids) == len(set(ids)), "duplicate case ids"
+    assert len(ids) >= 10, "Lab 5 requires at least ten golden cases"
 
 
 def test_every_golden_case_has_a_recorded_response():
@@ -71,7 +72,7 @@ def test_gate_fails_on_a_regressed_response(tmp_path):
     assert "GATE FAILED" in proc.stdout
     # the injected regressions: an invented part number, a swallowed prompt injection,
     # and a borderline case decided instead of escalated
-    for case_id in ("triage-003", "triage-004", "triage-007"):
+    for case_id in ("triage-003", "triage-004", "triage-007", "triage-010"):
         assert case_id in proc.stdout
 
 

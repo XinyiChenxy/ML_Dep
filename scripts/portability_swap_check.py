@@ -11,6 +11,7 @@ writing about: the leak was in configuration or in an assumption, not in an impo
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -24,6 +25,10 @@ from src import config
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--second-provider", required=True, choices=["aws", "azure", "gcp"])
+    ap.add_argument("--blob-uri", default=os.environ.get("SECOND_BLOB_URI"))
+    ap.add_argument("--region", default=os.environ.get("SECOND_REGION"))
+    ap.add_argument("--project-id", default=os.environ.get("SECOND_PROJECT_ID"))
+    ap.add_argument("--endpoint", default=os.environ.get("SECOND_ENDPOINT"))
     args = ap.parse_args()
 
     primary = config.load(strict=False)
@@ -36,7 +41,15 @@ def main() -> int:
 
     # Same Config object, different adapter. If your code needs more than this to switch,
     # say so in the write-up — that IS the finding.
-    swapped = config.Config(**{**primary.__dict__, "provider": args.second_provider})
+    overrides = {"provider": args.second_provider}
+    for field, value in (
+        ("blob_uri", args.blob_uri),
+        ("region", args.region),
+        ("project_id", args.project_id),
+    ):
+        if value:
+            overrides[field] = value
+    swapped = config.Config(**{**primary.__dict__, **overrides})
     adapter = get_adapter(swapped)
 
     results: dict[str, str] = {}
@@ -44,14 +57,26 @@ def main() -> int:
         probe = Path(tmp) / "probe.txt"
         probe.write_text("itcs355 portability probe\n")
 
-        for name, call in (
+        uploaded_uri = None
+        downloaded = Path(tmp) / "back.txt"
+
+        def invoke_second():
+            if not args.endpoint:
+                raise ValueError("set SECOND_ENDPOINT to the second provider endpoint")
+            return adapter.invoke(args.endpoint, {"rows": []})
+
+        calls = (
             ("upload", lambda: adapter.upload(str(probe), "portability/probe.txt")),
-            ("download", lambda: adapter.download(
-                f"{swapped.blob_uri}/portability/probe.txt", str(Path(tmp) / "back.txt"))),
-            ("invoke", lambda: adapter.invoke(swapped.project_id, {"rows": []})),
-        ):
+            ("download", lambda: adapter.download(str(uploaded_uri), str(downloaded))),
+            ("invoke", invoke_second),
+        )
+        for name, call in calls:
             try:
-                call()
+                value = call()
+                if name == "upload":
+                    uploaded_uri = value
+                if name == "download" and downloaded.read_bytes() != probe.read_bytes():
+                    raise ValueError("downloaded bytes differ from uploaded probe")
                 results[name] = "PASS"
             except NotImplementedError:
                 results[name] = "NOT IMPLEMENTED"
