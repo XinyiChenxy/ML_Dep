@@ -1,5 +1,8 @@
 import json
+from datetime import datetime
 from types import SimpleNamespace
+
+from google.cloud import monitoring_v3
 
 from cloudlayer.gcp import GcpAdapter
 
@@ -42,3 +45,23 @@ def test_endpoint_lab_label_matches_its_name():
     assert GcpAdapter._lab_from_endpoint("itcs355-lab4-staging") == 4
     assert GcpAdapter._lab_from_endpoint("itcs355-lab5-staging") == 5
     assert GcpAdapter._lab_from_endpoint("custom-endpoint") == 3
+
+
+def test_emit_metric_uses_supported_timestamp(monkeypatch):
+    captured = {}
+
+    class Client:
+        def create_time_series(self, *, name, time_series):
+            captured["name"] = name
+            captured["series"] = time_series[0]
+
+    monkeypatch.setattr(monitoring_v3, "MetricServiceClient", Client)
+    GcpAdapter(config()).emit_metric("drift.psi.temp_c", 0.38333)
+
+    assert captured["name"] == "projects/test-project"
+    assert captured["series"].metric.type == (
+        "custom.googleapis.com/itcs355/drift/psi/temp_c"
+    )
+    end_time = captured["series"].points[0].interval.end_time
+    assert isinstance(end_time, datetime)
+    assert end_time.tzinfo is not None

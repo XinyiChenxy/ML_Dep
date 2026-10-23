@@ -7,6 +7,7 @@ import re
 import subprocess
 import time
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -311,7 +312,6 @@ class GcpAdapter(CloudAdapter):
 
     def emit_metric(self, name: str, value: float, unit: str = "1") -> None:
         from google.cloud import monitoring_v3
-        from google.protobuf import timestamp_pb2
 
         client = monitoring_v3.MetricServiceClient()
         series = monitoring_v3.TimeSeries()
@@ -320,8 +320,10 @@ class GcpAdapter(CloudAdapter):
         series.resource.labels["project_id"] = self.cfg.project_id
         point = monitoring_v3.Point()
         point.value.double_value = float(value)
-        point.interval.end_time = timestamp_pb2.Timestamp()
-        point.interval.end_time.GetCurrentTime()
+        # Proto-plus exposes Timestamp fields as datetime objects when read back.
+        # Calling protobuf's GetCurrentTime() through that field therefore fails
+        # with DatetimeWithNanoseconds on current google-cloud-monitoring releases.
+        point.interval.end_time = datetime.now(timezone.utc)
         series.points = [point]
         client.create_time_series(
             name=f"projects/{self.cfg.project_id}", time_series=[series]
