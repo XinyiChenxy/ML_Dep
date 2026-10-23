@@ -1,5 +1,6 @@
 # NEVER commit this. Real credentials and account identifiers live here.
 cloud.env
+/pipeline/lab5-pipeline.json
 
 # DVC manages these; Git must not.
 data/raw/*

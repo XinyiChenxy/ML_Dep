@@ -1,6 +1,7 @@
 # Same Python major/minor as the validated GCP lock file.
 FROM python@sha256:9534e5a8e315485d4061ed659af0fd78a284c015f9b73661b41d6bab25604534
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app GIT_PYTHON_REFRESH=quiet
+ARG GIT_COMMIT_SHA=unknown
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app GIT_PYTHON_REFRESH=quiet GIT_COMMIT_SHA=${GIT_COMMIT_SHA}
 WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir --require-hashes -r requirements.txt && useradd --create-home --uid 10001 runner
