@@ -56,6 +56,10 @@ pending cloud run or screenshot into evidence.
   downloaded both GCS windows, emitted Cloud Monitoring PSI metrics and delivered the breached
   `temp_c=0.38333` alert to the real Slack `#all-itcs355` channel. The user captured both the green
   1m39s Actions run and delivered Slack message.
+- [x] Imported Cloud Monitoring dashboard
+  [`346faf7b-ce0c-4a1b-a7d2-8d615e5f6020`](https://console.cloud.google.com/monitoring/dashboards/builder/346faf7b-ce0c-4a1b-a7d2-8d615e5f6020?project=project-b9257458-cea1-4ef8-876)
+  visibly plots `temp_c` PSI 0.38333 above the red 0.20 significant-drift threshold; screenshot
+  captured.
 
 ### Still required externally
 
@@ -63,12 +67,10 @@ pending cloud run or screenshot into evidence.
   `temp_c`; the [Actions job](https://github.com/XinyiChenxy/ML_Dep/actions/runs/39986069085/job/120525462831?pr=1)
   recorded `test_schema_columns_present_and_typed` failing with
   `missing columns: ['temp_c']`. Close it without merging after preserving the screenshot.
-- [ ] Capture the imported Cloud Monitoring dashboard showing the emitted PSI metric at the alert
-  timestamp.
 - [ ] Run teardown and verify the scheduler/endpoint lists are empty.
 
 **Current verdict:** CI blocking, WIF, scheduled drift, metric emission and real-channel alert
-evidence pass; dashboard and teardown evidence remain.
+evidence pass; only teardown evidence remains.
 
 ## Lab 5 — managed operation, portability, cost and LLM controls
 
