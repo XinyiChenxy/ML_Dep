@@ -4,17 +4,17 @@ This file records the required external CI exercise. Create a short-lived branch
 `temp_c` from the generated fixture, open a pull request, and close it without merging after CI
 fails.
 
-Repository audit on 2026-10-23 found **zero pull-request workflow runs**, so the required exercise
-has not happened yet. The latest failed main run was
-[`39982013690`](https://github.com/XinyiChenxy/ML_Dep/actions/runs/39982013690), where the `secrets`
-job failed because `make scan-secrets` did not exist. That implementation defect is fixed in the
-working tree, but it is not data-contract evidence and must not be submitted as the blocked commit.
+The exercise was run against the deliberately broken `lab4-bad-contract-evidence` branch. The
+secret scan passed, the data-contract job failed, and the downstream image build was skipped, so
+the bad producer change did not ship.
 
-- Pull request URL: **pending live GitHub run**
-- Failing workflow URL: **pending live GitHub run**
+- Pull request URL: https://github.com/XinyiChenxy/ML_Dep/pull/1
+- Failing workflow URL: https://github.com/XinyiChenxy/ML_Dep/actions/runs/39986069085/job/120525462831?pr=1
 - Named test: `test_schema_columns_present_and_typed`
-- Expected failure: `missing columns: ['temp_c']`
-- Outcome: close without merging; attach the GitHub Actions timestamp/screenshot here.
+- Observed failure: `AssertionError: missing columns: ['temp_c']`
+- Workflow outcome: 3 data tests failed, 7 passed; model-behaviour/service tests and image build
+  were skipped after the contract gate exited with code 1.
+- Pull-request outcome: close without merging after preserving the Actions log and screenshot.
 
 Do not replace these fields with invented evidence. A real failed Actions run is part of the Lab 4
 acceptance criteria.

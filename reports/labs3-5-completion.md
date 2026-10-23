@@ -57,8 +57,10 @@ pending cloud run or screenshot into evidence.
 - [ ] Configure GitHub GCP WIF values. Scheduled run
   [`39961850900`](https://github.com/XinyiChenxy/ML_Dep/actions/runs/39961850900) failed at
   `google-github-actions/auth@v2`.
-- [ ] Open a deliberately bad pull request that removes `temp_c`, preserve the named data-contract
-  failure URL/message, then close without merging. The repository currently has zero PR runs.
+- [x] Deliberately bad [pull request #1](https://github.com/XinyiChenxy/ML_Dep/pull/1) removed
+  `temp_c`; the [Actions job](https://github.com/XinyiChenxy/ML_Dep/actions/runs/39986069085/job/120525462831?pr=1)
+  recorded `test_schema_columns_present_and_typed` failing with
+  `missing columns: ['temp_c']`. Close it without merging after preserving the screenshot.
 - [ ] Configure a real Slack/email webhook, inject drift, and capture the delivered alert plus the
   dashboard timestamp and detection duration.
 - [ ] Run teardown and verify the scheduler/endpoint lists are empty.
