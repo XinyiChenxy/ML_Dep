@@ -17,6 +17,7 @@ job_id = adapter.submit_training(
         "artifact_prefix": "lab5",
         "experiment": "itcs355-lab5",
         "metrics_out": "/app/reports/metrics.json",
+        "instance": "n1-standard-1",
     },
 )
 result = adapter.wait_training(job_id)

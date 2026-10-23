@@ -123,7 +123,10 @@ def compile_gcp(spec: dict[str, Any]):
         for key, value in env.items():
             if value:
                 task.set_env_variable(key, str(value))
-        return task
+        # New teaching/free-trial projects commonly receive only one Vertex custom
+        # training CPU per region. Every orchestration step is lightweight, so pin it
+        # to one CPU instead of accepting Vertex's larger default worker.
+        return task.set_cpu_limit("1")
 
     @dsl.pipeline(name=spec["name"], pipeline_root=f"{cfg.blob_uri.rstrip('/')}/lab5/pipeline-root")
     def training_pipeline():

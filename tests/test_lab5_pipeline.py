@@ -53,3 +53,4 @@ def test_gcp_pipeline_contains_real_registration_condition(tmp_path, monkeypatch
     assert "== 'pass'" in rendered
     assert "lab5-register" in rendered
     assert "lab5-deploy-staging" in rendered
+    assert rendered.count('"cpuLimit": 1.0') == 6
