@@ -49,7 +49,8 @@ def build(seed: int) -> pd.DataFrame:
             rows.append({
                 "reading_id": reading_id,
                 "machine_id": machine,
-                "temp_c": round(float(temp), 3),
+                # LAB 4 EVIDENCE ONLY: deliberately omit required temp_c so CI proves
+                # test_schema_columns_present_and_typed blocks a bad producer change.
                 "vibration_mm_s": round(float(vib), 3),
                 "pressure_kpa": round(float(pressure), 3),
                 "hours_since_service": round(hours, 3),
