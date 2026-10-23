@@ -8,7 +8,6 @@ Required before final submission:
 
 - `pipeline-success.txt`: Vertex run URL/ID and six-step outcome, including one failed gate branch
 - `iam-removal.txt`: successful artifact read, permission removal, observed 403, and restoration
-- `schedule-evidence.txt`: schedule resource name, timezone, identity, concurrency and paused state
 - `portability-evidence.txt`: real AWS upload/download/invoke output (offline tests are already present)
 - `billing.csv`: tag-filtered Lab 5 usage cost and credits after billing settles
 - `teardown-24h.txt`: second teardown verification at least 24 hours later
@@ -16,3 +15,8 @@ Required before final submission:
 - `llm_eval-live.json`: provider-reported input/output tokens from the 12 live cases
 
 The absence of these files means the associated claim remains pending, not that it passed.
+
+Completed cloud evidence:
+
+- `schedule-evidence.txt`: schedule resource name, timezone, identity, concurrency and verified
+  `PAUSED` state.

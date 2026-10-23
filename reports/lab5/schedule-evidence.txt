@@ -1,0 +1,13 @@
+Lab 5 Vertex Pipeline schedule evidence
+
+Created: 2026-10-23 (Asia/Bangkok)
+Project: project-b9257458-cea1-4ef8-876
+Location: asia-southeast1
+Resource: projects/194540272188/locations/asia-southeast1/schedules/5501432817856282624
+Console: https://console.cloud.google.com/vertex-ai/locations/asia-southeast1/pipelines/schedules/5501432817856282624?project=194540272188
+Cron: CRON_TZ=Asia/Bangkok 0 2 * * 0
+Identity: itcs355-pipeline@project-b9257458-cea1-4ef8-876.iam.gserviceaccount.com
+Maximum concurrent runs: 1
+Verified state after creation: PAUSED
+
+The schedule was created and immediately paused. No scheduled pipeline run was started.
