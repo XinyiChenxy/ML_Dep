@@ -120,8 +120,8 @@ all pass.
 - [x] Run the IAM removal experiment and preserve successful read → permission removal → 403 →
   restoration output.
 - [ ] Demonstrate AWS upload/download/invoke against a real second account.
-- [ ] Enable Standard usage cost export to the prepared `itcs355_billing` dataset, run
-  `make billing-export`, and replace pending actual-cost fields after the provider load settles.
+- [ ] Standard usage cost export is enabled and its managed writer is present. After the first
+  provider load creates a table, run `make billing-export` and replace pending actual-cost fields.
 - [x] Run the live LLM evaluation with provider-reported token fields and preserve the passing gate.
 - [x] Delete the paused schedule and every remaining tagged Lab 5 resource; immediate verification
   returned `PASS nothing found`. Repeat the same check after 24 hours for final delayed-deletion

@@ -26,5 +26,16 @@ After Google creates a table named gcp_billing_export_v1_*, run:
 That command writes reports/lab5/billing.csv, filtered to this project and both
 course=itcs355 / lab=5 labels, with usage cost, credits and net cost kept separate.
 
+Enabled confirmation — 2026-10-24
+---------------------------------
+The user enabled Standard usage cost export and selected this dataset. A provider-side dataset
+ACL check then found:
+
+  billing-export-bigquery@system.gserviceaccount.com
+
+Google adds this managed writer only after the export setting is saved, so configuration is
+confirmed. The `gcp_billing_export_v1_*` table has not appeared yet; the first load normally takes
+several hours and the multi-region backfill can take longer.
+
 Official setup documentation:
 https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-setup

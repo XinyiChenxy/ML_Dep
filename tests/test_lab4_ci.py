@@ -18,6 +18,8 @@ def test_cd_uses_repository_variables_and_deletes_staging_endpoint():
     assert "itcs355-6688176" not in workflow
     assert "PROJECT_ID: ${{ vars.PROJECT_ID }}" in workflow
     assert "gcloud ai endpoints delete" in workflow
+    assert "group: cd-staging-${{ github.repository }}" in workflow
+    assert "cancel-in-progress: false" in workflow
 
 
 def test_dashboard_threshold_matches_drift_job():

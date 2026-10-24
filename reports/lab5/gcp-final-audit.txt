@@ -1,0 +1,39 @@
+Lab 5 final GCP resource audit — 2026-10-24 (Asia/Shanghai)
+
+Project: project-b9257458-cea1-4ef8-876
+Vertex region: asia-southeast1
+
+Full-project provider queries (not label-filtered)
+--------------------------------------------------
+Vertex Endpoints: 0 after both in-flight CD runs completed
+Vertex Custom Jobs: 0 total, 0 active
+Vertex Pipeline Jobs: 5 historical, 0 active
+Vertex Pipeline Schedules: 0 total
+Compute Engine API: disabled, therefore 0 Compute Engine instances
+
+The five Pipeline Job records are terminal PIPELINE_STATE_FAILED quota evidence. They consume no
+training compute and remain intentionally preserved for assessment.
+
+Concurrent CD cleanup finding
+-----------------------------
+Two main commits triggered overlapping CD runs against the shared `itcs355-lab4-staging` endpoint:
+
+  run 40079454514: deploy success, smoke success, cleanup failure
+  run 40080316854: deploy success, smoke failure, cleanup success
+
+The second cleanup removed the endpoint and the subsequent full-project provider query returned
+`endpoints_total=0`. The workflow now has the repository-level concurrency group
+`cd-staging-${{ github.repository }}` with `cancel-in-progress: false`, so future staging deployments
+queue instead of racing one another.
+
+Billing Export
+--------------
+Billing is enabled. Dataset `project-b9257458-cea1-4ef8-876.itcs355_billing` exists in US and its
+ACL includes Google's managed `billing-export-bigquery@system.gserviceaccount.com` writer. Standard
+usage export is configured; the first `gcp_billing_export_v1_*` table is still awaiting provider
+ingestion.
+
+Delayed check still required
+----------------------------
+The assignment requires another teardown/cost check at least 24 hours later. This audit occurred
+on the same day as teardown and cannot truthfully satisfy that time condition.

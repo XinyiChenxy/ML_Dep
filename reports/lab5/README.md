@@ -30,6 +30,8 @@ Completed cloud evidence:
   provider-reported token usage, latency, estimated token cost and credential cleanup.
 - `billing-export-setup.txt`: billing-enabled project and labeled US multi-region dataset prepared;
   `make billing-export` is ready to query the provider-created table.
+- `gcp-final-audit.txt`: full-project (not label-filtered) Vertex/Compute audit, concurrent-CD race
+  finding, final endpoint=0 result and workflow serialization fix.
 
 Current cloud blocker:
 
@@ -39,6 +41,6 @@ Current cloud blocker:
   sufficient quota increase. Do not replace this limitation with copied reference evidence.
 - No AWS CLI/profile/credentials and no logged-in Azure subscription are present, so a real second
   provider run requires the user to connect one of those accounts.
-- Billing is enabled and the `itcs355_billing` dataset exists, but Google requires the final
-  Standard usage cost export selection in the Cloud Console. Actual tagged costs cannot be queried
-  until that console-only setting is saved and the first export load settles.
+- Billing is enabled, Standard usage cost export is saved, and the `itcs355_billing` dataset has
+  Google's managed export writer. Actual tagged costs cannot be queried until the first provider
+  load creates its export table.
