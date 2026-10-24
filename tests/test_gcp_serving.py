@@ -13,6 +13,8 @@ def config():
     return SimpleNamespace(
         project_id="test-project",
         region="asia-southeast1",
+        llm_model="gemini-test",
+        llm_location="global",
     )
 
 
@@ -139,3 +141,56 @@ def test_traffic_split_validation_rejects_bad_or_unknown_ids():
         assert "Unknown deployed model IDs" in str(exc)
     else:
         raise AssertionError("unknown deployed model ID was accepted")
+
+
+def test_generate_uses_process_only_gemini_key(monkeypatch):
+    """The API-key fallback reports provider usage and never needs cloud.env."""
+    from google import genai
+
+    captured = {}
+
+    class FakeModels:
+        def generate_content(self, **kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(
+                text='{"decision":"no_action","rationale":"0.04"}',
+                usage_metadata=SimpleNamespace(
+                    prompt_token_count=31,
+                    candidates_token_count=12,
+                    thoughts_token_count=7,
+                ),
+            )
+
+    class FakeClient:
+        def __init__(self, api_key, http_options):
+            captured["api_key"] = api_key
+            captured["http_options"] = http_options
+            self.models = FakeModels()
+
+    monkeypatch.setenv("GEMINI_API_KEY", "ephemeral-test-key")
+    monkeypatch.setattr(genai, "Client", FakeClient)
+    result = GcpAdapter(config()).generate("decide", {
+        "temperature": 0.0,
+        "max_output_tokens": 64,
+        "response_mime_type": "application/json",
+    })
+
+    assert captured == {
+        "api_key": "ephemeral-test-key",
+        "http_options": {
+            "timeout": 60_000,
+            "retry_options": {"attempts": 2},
+        },
+        "model": "gemini-test",
+        "contents": "decide",
+        "config": {
+            "temperature": 0.0,
+            "max_output_tokens": 64,
+            "response_mime_type": "application/json",
+        },
+    }
+    assert result["input_tokens"] == 31
+    assert result["output_tokens"] == 19
+    assert result["candidate_tokens"] == 12
+    assert result["thinking_tokens"] == 7
+    assert result["response"].startswith("{")

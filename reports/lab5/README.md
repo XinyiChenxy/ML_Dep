@@ -11,7 +11,6 @@ Required before final submission:
 - `billing.csv`: tag-filtered Lab 5 usage cost and credits after billing settles
 - `teardown-24h.txt`: second teardown verification at least 24 hours later
 - `empty-resources.png`: console screenshot showing no endpoint, schedule, job or compute remains
-- `llm_eval-live.json`: provider-reported input/output tokens from the 12 live cases
 
 The absence of these files means the associated claim remains pending, not that it passed.
 
@@ -25,7 +24,10 @@ Completed cloud evidence:
   final IAM-policy verification.
 - `teardown.txt`: deletion of the paused schedule and immediate `PASS nothing found` verification.
 - `llm-access-blocker.txt`: regional and global publisher-model access probes returning 404 before
-  any content or usage metadata was produced.
+  any content or usage metadata was produced, followed by the successful global-endpoint
+  resolution.
+- `llm-live-evidence.txt` and `../llm_eval-live.json`: real Vertex global evaluation, 12/12 gate,
+  provider-reported token usage, latency, estimated token cost and credential cleanup.
 
 Current cloud blocker:
 

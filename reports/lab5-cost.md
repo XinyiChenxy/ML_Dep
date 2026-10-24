@@ -1,9 +1,9 @@
 # Lab 5 — Full cost accounting
 
 **Provider:** `gcp`<br>
-**Region:** `asia-southeast1`<br>
-**Status:** implementation, IAM failure experiment and teardown complete; account-owned cloud
-billing, second-provider and live LLM evidence still required
+**Region:** `asia-southeast1` for ML workloads; `global` for Gemini<br>
+**Status:** implementation, IAM failure experiment, live LLM gate and teardown complete;
+account-owned managed-pipeline quota, billing export and second-provider evidence still required
 
 ## 1. Estimate committed before the managed run
 
@@ -53,15 +53,17 @@ completion latency through interruption and retry; it does not change online pre
 
 ## 7. LLM token bill and controls
 
-**Blocked live evidence.** The retired configured model and two supported replacement probes all
-returned provider 404 project-access/region errors before any content or usage metadata was
-generated. Exact evidence is in `reports/lab5/llm-access-blocker.txt`. Offline fixture token fields
-are deliberately not presented as a measured bill.
+The real Vertex `global` run used `gemini-3.5-flash-lite` and passed **12/12** cases. Provider usage
+averaged **415 input tokens**, **37 billed output tokens** (37 visible candidate, 0 thinking), with
+**1,816 ms p95 latency**. At the course-reference GCP small-model rates, this is
+**4.7855 THB/1,000 requests**. `reports/llm_eval-live.json` is the machine-readable evidence; unlike
+the fixture report, its `usage_source` is `provider`.
 
-The live configuration caps output at 64 tokens. Against a 200-output-token worst case with a
-420-token input, the cap limits exposure by **4.6240 THB/1,000 requests** at the course
-reference small-model rate. The 12-case offline gate passes with concise responses under this cap;
-the live gate must also pass before this is claimed as a production saving.
+The live configuration caps total output at 256 tokens. A hypothetical uncapped 1,024-output-token
+response at the measured 415-token input would cost **26.1120 THB/1,000 requests more** at the same
+course planning rates. A 64/128-token cap was rejected because real 3.8-model probes exhausted the
+budget on hidden reasoning and produced truncated JSON; the selected 3.5-lite model reported zero
+thinking tokens and passed the gate at 256.
 
 Prompt caching breaks even above a **21.74%** hit rate. The golden prompts
 are all distinct and no live cache-hit field has been collected, so the measured hit rate is not
@@ -70,7 +72,7 @@ claimed and caching remains disabled.
 ## Budget defence
 
 The classifier cost is strongly utilisation-dependent, while the LLM cost is linear in provider-
-reported tokens. We selected Spot training and a 64-token output ceiling, but will not claim an
-actual per-1,000 LLM price until a live response supplies token usage metadata. The trade-off is
-possible Spot delay and deliberately shorter explanations; the regression gate protects the four
-critical behaviours before that cheaper configuration can ship.
+reported tokens. We selected Spot training, the smaller Gemini variant and a 256-token ceiling.
+The live 12/12 gate supports that choice; the trade-off remains possible Spot delay and deliberately
+short explanations. The 4.7855 THB figure is a measured-token planning estimate, not a settled
+Cloud Billing export.

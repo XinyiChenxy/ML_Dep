@@ -37,6 +37,18 @@ Official references checked:
 
 Conclusion
 ----------
-No provider response or usage metadata was returned, so no token bill is claimed. The live golden
-set remains blocked until this project is granted access to a supported Vertex publisher model.
-The offline 12-case gate remains valid regression evidence but is not billing evidence.
+These attempts established the original region/model blocker. It was later resolved without
+copying evidence or inventing usage: `gemini-3.5-flash-lite` is available to this project through
+the Vertex `global` endpoint even though its `asia-southeast1` call returns 404.
+
+Resolution — 2026-10-24
+-----------------------
+The global probe returned content and provider usage metadata. The final 12-case live run passed
+12/12 with p95 1,816 ms and provider-reported averages of 415 input, 37 visible output and zero
+thinking tokens. See `reports/llm_eval-live.json` and `reports/lab5/llm-live-evidence.txt`.
+
+An alternative Generative Language API test was abandoned after AI Studio returned 402 depleted
+prepayment credits. Its API key was restricted to `generativelanguage.googleapis.com`, deleted
+immediately, and the API Keys inventory verified zero matching temporary keys. The successful final
+run used Vertex ADC/WIF-style credentials and no API key. The temporarily enabled Generative
+Language API was disabled after verification.

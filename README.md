@@ -240,7 +240,9 @@ make llm-gate   # expected non-zero: the guardrail regression is caught
 
 Offline fixtures are test evidence, not token-billing evidence. A live Vertex run reads
 `usage_metadata` in `GcpAdapter.generate`; only `reports/llm_eval-live.json` may supply measured
-token counts to `make cost`. This project currently receives publisher-model access 404s in both
-`asia-southeast1` and `global`, recorded in `reports/lab5/llm-access-blocker.txt`; no token bill is
-claimed. The generated [Lab 5 cost report](reports/lab5-cost.md) keeps billing, managed-run,
-second-provider and live-token evidence visibly pending.
+token counts to `make cost`. The final Vertex `global` run used `gemini-3.5-flash-lite`, passed
+12/12 cases, and recorded 415 average input tokens, 37 average billed output tokens, 1,816 ms p95
+and 4.7855 THB/1,000 requests at the course planning rate. Earlier regional/model 404s and their
+resolution are preserved in `reports/lab5/llm-access-blocker.txt`. The generated
+[Lab 5 cost report](reports/lab5-cost.md) keeps settled billing, managed-run and second-provider
+evidence visibly pending.

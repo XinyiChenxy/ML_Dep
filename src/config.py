@@ -60,6 +60,7 @@ class Config:
     serving_image_uri: str = ""
     serving_service_account: str = ""
     llm_model: str = "gemini-3.5-flash-lite"
+    llm_location: str = "global"
     data_dir: Path = field(default=REPO_ROOT / "data")
     reports_dir: Path = field(default=REPO_ROOT / "reports")
 
@@ -93,6 +94,7 @@ def load(strict: bool = True) -> Config:
         serving_image_uri=get("SERVING_IMAGE_URI", ""),
         serving_service_account=get("SERVING_SERVICE_ACCOUNT", ""),
         llm_model=get("LLM_MODEL", "gemini-3.5-flash-lite"),
+        llm_location=get("LLM_LOCATION", "global"),
     )
 
 

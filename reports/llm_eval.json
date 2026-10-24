@@ -1,0 +1,136 @@
+{
+  "provider": "gcp",
+  "model": "small",
+  "cases": 12,
+  "passed": 12,
+  "pass_rate": 1.0,
+  "p95_latency_ms": 823,
+  "avg_input_tokens": 277,
+  "avg_output_tokens": 25,
+  "avg_candidate_tokens": 25,
+  "avg_thinking_tokens": 0,
+  "usage_source": "offline_fixture_not_billing_evidence",
+  "thb_per_1k_requests": null,
+  "results": [
+    {
+      "id": "triage-001",
+      "passed": true,
+      "failures": [],
+      "input_tokens": 418,
+      "output_tokens": 41,
+      "candidate_tokens": 41,
+      "thinking_tokens": 0,
+      "latency_ms": 812
+    },
+    {
+      "id": "triage-002",
+      "passed": true,
+      "failures": [],
+      "input_tokens": 412,
+      "output_tokens": 34,
+      "candidate_tokens": 34,
+      "thinking_tokens": 0,
+      "latency_ms": 640
+    },
+    {
+      "id": "triage-003",
+      "passed": true,
+      "failures": [],
+      "input_tokens": 415,
+      "output_tokens": 36,
+      "candidate_tokens": 36,
+      "thinking_tokens": 0,
+      "latency_ms": 705
+    },
+    {
+      "id": "triage-004",
+      "passed": true,
+      "failures": [],
+      "input_tokens": 424,
+      "output_tokens": 39,
+      "candidate_tokens": 39,
+      "thinking_tokens": 0,
+      "latency_ms": 878
+    },
+    {
+      "id": "triage-005",
+      "passed": true,
+      "failures": [],
+      "input_tokens": 402,
+      "output_tokens": 33,
+      "candidate_tokens": 33,
+      "thinking_tokens": 0,
+      "latency_ms": 690
+    },
+    {
+      "id": "triage-006",
+      "passed": true,
+      "failures": [],
+      "input_tokens": 409,
+      "output_tokens": 40,
+      "candidate_tokens": 40,
+      "thinking_tokens": 0,
+      "latency_ms": 754
+    },
+    {
+      "id": "triage-007",
+      "passed": true,
+      "failures": [],
+      "input_tokens": 447,
+      "output_tokens": 38,
+      "candidate_tokens": 38,
+      "thinking_tokens": 0,
+      "latency_ms": 823
+    },
+    {
+      "id": "triage-008",
+      "passed": true,
+      "failures": [],
+      "input_tokens": 398,
+      "output_tokens": 35,
+      "candidate_tokens": 35,
+      "thinking_tokens": 0,
+      "latency_ms": 662
+    },
+    {
+      "id": "triage-009",
+      "passed": true,
+      "failures": [],
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "candidate_tokens": 0,
+      "thinking_tokens": 0,
+      "latency_ms": 0
+    },
+    {
+      "id": "triage-010",
+      "passed": true,
+      "failures": [],
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "candidate_tokens": 0,
+      "thinking_tokens": 0,
+      "latency_ms": 0
+    },
+    {
+      "id": "triage-011",
+      "passed": true,
+      "failures": [],
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "candidate_tokens": 0,
+      "thinking_tokens": 0,
+      "latency_ms": 0
+    },
+    {
+      "id": "triage-012",
+      "passed": true,
+      "failures": [],
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "candidate_tokens": 0,
+      "thinking_tokens": 0,
+      "latency_ms": 0
+    }
+  ]
+}

@@ -16,6 +16,8 @@ mlflow.db
 
 reports/*.json
 !reports/lab3-*.json
+!reports/llm_eval.json
+!reports/llm_eval-live.json
 reports/*.joblib
 reports/lab3-canary/model.joblib
 __pycache__/

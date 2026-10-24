@@ -108,9 +108,10 @@ all pass.
   permission was removed and final IAM state was verified.
 - [x] Final `make teardown LAB=5` deleted the paused weekly schedule; immediate verification found
   no remaining tagged Lab 5 Custom Job, Endpoint or Schedule.
-- [x] Live LLM access was attempted against the retired configured model and supported replacements;
-  all were blocked before usage metadata by provider 404 project-access errors, recorded in
-  `reports/lab5/llm-access-blocker.txt` without inventing a token bill.
+- [x] Live Vertex `global` evaluation uses `gemini-3.5-flash-lite`, records provider candidate and
+  thinking tokens, passes all 12 cases, and reports 1,816 ms p95 plus 4.7855 THB/1,000 requests at
+  the course planning rate. Earlier regional/model 404s and the successful resolution are recorded
+  in `reports/lab5/llm-access-blocker.txt`.
 
 ### Still required externally
 
@@ -120,15 +121,14 @@ all pass.
   restoration output.
 - [ ] Demonstrate AWS upload/download/invoke against a real second account.
 - [ ] Export tag-filtered billing and replace pending actual-cost fields.
-- [ ] Obtain publisher-model access, then run the live LLM evaluation and use provider-reported
-  token fields.
+- [x] Run the live LLM evaluation with provider-reported token fields and preserve the passing gate.
 - [x] Delete the paused schedule and every remaining tagged Lab 5 resource; immediate verification
   returned `PASS nothing found`. Repeat the same check after 24 hours for final delayed-deletion
   assurance.
 
-**Current verdict:** local logic, IAM failure evidence, negative LLM gate and teardown pass; managed
-acceptance remains blocked by account-owned quota, second-cloud, billing-export and publisher-model
-access requirements.
+**Current verdict:** local logic, IAM failure evidence, negative and live-positive LLM gates, and
+teardown pass; managed acceptance remains blocked only by account-owned training quota,
+second-cloud and billing-export requirements.
 
 ## Reproducible local checks
 

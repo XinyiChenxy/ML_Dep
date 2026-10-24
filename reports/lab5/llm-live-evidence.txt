@@ -1,0 +1,31 @@
+Lab 5 live LLM evidence — 2026-10-24 (Asia/Bangkok)
+
+Provider: Vertex AI
+Project: project-b9257458-cea1-4ef8-876
+Location: global
+Model: gemini-3.5-flash-lite
+Golden set: evals/golden/triage.jsonl (12 cases)
+Output ceiling: 256 tokens
+
+Result
+------
+12/12 cases passed.
+Regression gate against the 12/12 offline baseline: PASSED.
+p95 latency: 1,816 ms
+Average input tokens: 415
+Average visible candidate tokens: 37
+Average hidden thinking tokens: 0
+Average billed output tokens: 37
+Planning cost: 4.7855 THB per 1,000 requests (course GCP small-model rates)
+Machine-readable report: reports/llm_eval-live.json
+
+Credential safety
+-----------------
+The successful run used Application Default Credentials against Vertex AI and no API key.
+
+Before the Vertex-global resolution, a temporary Generative Language API key was tested. It was
+restricted to generativelanguage.googleapis.com. AI Studio returned HTTP 402 because its separate
+prepayment credits were depleted. The key was deleted immediately, and a subsequent inventory
+query reported zero matching `ITCS355 Lab5 ephemeral` keys. No key was written to this repository.
+The temporarily enabled Generative Language API was then disabled, restoring the project to its
+pre-test service state.

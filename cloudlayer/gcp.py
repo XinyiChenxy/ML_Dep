@@ -400,29 +400,59 @@ class GcpAdapter(CloudAdapter):
         )
 
     def generate(self, prompt: str, params: dict[str, Any]) -> dict[str, Any]:
-        """Call Vertex and retain provider-reported usage rather than estimating tokens."""
-        import vertexai
-        from vertexai.generative_models import GenerationConfig, GenerativeModel
+        """Call Gemini and retain provider-reported usage rather than estimating tokens.
 
+        Vertex remains the normal managed path.  ``GEMINI_API_KEY`` is an explicit,
+        process-only fallback for labs whose GCP project has not been granted Vertex
+        publisher-model access; the credential is never read from ``cloud.env``.
+        """
         options = dict(params)
         model_name = options.pop("model", self.cfg.llm_model)
         allowed = {
             "max_output_tokens", "temperature", "top_p", "top_k",
             "candidate_count", "stop_sequences", "response_mime_type",
+            "thinking_config",
         }
         unknown = sorted(set(options) - allowed)
         if unknown:
             raise ValueError(f"unsupported generation parameter(s): {', '.join(unknown)}")
-        vertexai.init(project=self.cfg.project_id, location=self.cfg.region)
+
         started = time.perf_counter()
-        response = GenerativeModel(model_name).generate_content(
-            prompt, generation_config=GenerationConfig(**options)
+        from google import genai
+
+        api_key = os.environ.get("GEMINI_API_KEY")
+        http_options = {
+            "timeout": 60_000,
+            "retry_options": {"attempts": 2},
+        }
+        if api_key:
+            client = genai.Client(api_key=api_key, http_options=http_options)
+        else:
+            client = genai.Client(
+                vertexai=True,
+                project=self.cfg.project_id,
+                location=getattr(self.cfg, "llm_location", "global"),
+                http_options=http_options,
+            )
+        response = client.models.generate_content(
+            model=model_name,
+            contents=prompt,
+            config=options,
         )
+
         usage = response.usage_metadata
+        if usage is None:
+            raise RuntimeError("Gemini response omitted provider usage metadata")
+        candidate_tokens = int(usage.candidates_token_count or 0)
+        thinking_tokens = int(getattr(usage, "thoughts_token_count", 0) or 0)
         return {
-            "response": response.text,
-            "input_tokens": int(usage.prompt_token_count),
-            "output_tokens": int(usage.candidates_token_count),
+            "response": response.text or "",
+            "input_tokens": int(usage.prompt_token_count or 0),
+            # Gemini bills hidden thinking as output. Keeping both components makes
+            # the cost calculation complete without hiding the visible-token count.
+            "output_tokens": candidate_tokens + thinking_tokens,
+            "candidate_tokens": candidate_tokens,
+            "thinking_tokens": thinking_tokens,
             "latency_ms": round((time.perf_counter() - started) * 1000),
         }
 
