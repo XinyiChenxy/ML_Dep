@@ -26,6 +26,15 @@ Google state detail: We cannot grant the preferred quota '4' for limit
 'CustomModelTrainingCPUsPerProjectPerRegion' in service 'aiplatform.googleapis.com'
 at this moment. '1' was granted.
 
+All-region follow-up (2026-10-24)
+---------------------------------
+`gcloud beta quotas info describe CustomModelTrainingCPUsPerProjectPerRegion` reported a precise
+effective value of 1 for every listed Vertex region, including us-central1, all European regions
+and all Asia-Pacific regions. Switching regions therefore cannot supply the minimum 4 CPUs needed
+by the Vertex pipeline executor. The quota response also reports:
+
+  quotaIncreaseEligibility.ineligibilityReason = NOT_ENOUGH_USAGE_HISTORY
+
 Resource safety check
 ---------------------
 Vertex AI Custom Jobs listed in asia-southeast1: none
@@ -35,7 +44,7 @@ Pipeline schedule 5501432817856282624: PAUSED (see schedule-evidence.txt)
 Conclusion
 ----------
 The Lab 5 implementation and compiled six-step pipeline are present, but this new/free-trial
-project cannot start even the first managed KFP container task under the granted regional custom
-training CPU quota. This file records a real quota-blocked run; it is not pipeline-success evidence.
+project cannot start even the first managed KFP container task under the granted custom-training
+CPU quota in any region. This file records a real quota-blocked run; it is not pipeline-success evidence.
 Do not claim the managed pipeline passed until a later run completes after sufficient quota is
 granted.

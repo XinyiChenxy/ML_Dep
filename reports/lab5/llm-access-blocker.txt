@@ -24,6 +24,13 @@ Attempt 3
 Model: gemini-2.5-flash
 Result: HTTP/gRPC 404 NOT_FOUND with the same explicit project-access/region message.
 
+Attempt 4
+---------
+Location: global
+Model: gemini-2.5-flash
+Result: HTTP 404 NOT_FOUND from `aiplatform.googleapis.com`; the project does not have publisher
+model access. This rules out a regional availability mismatch.
+
 Official references checked:
 - https://docs.cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versions
 - https://docs.cloud.google.com/gemini-enterprise-agent-platform/resources/locations

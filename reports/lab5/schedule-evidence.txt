@@ -11,3 +11,6 @@ Maximum concurrent runs: 1
 Verified state after creation: PAUSED
 
 The schedule was created and immediately paused. No scheduled pipeline run was started.
+
+Final teardown: deleted on 2026-10-24 by `make teardown LAB=5`; the immediate follow-up
+`scripts/teardown_verify.py --lab 5` returned `PASS nothing found`. See `teardown.txt`.

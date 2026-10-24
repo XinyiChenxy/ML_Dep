@@ -186,10 +186,10 @@ Exact identity references are injected through `cloud.env` and are not committed
 | Serving service account | Read only the selected model artifact; write service logs and metrics | Loads the model and exposes predictions without changing training data or registry state |
 | GitHub OIDC CI service account | Push immutable images, submit the pipeline and deploy staging while impersonating only the serving identity | Automates releases without a stored service-account key or data access |
 
-The assessed permission-removal experiment must be run on this project: read the chosen model as
-the serving identity, remove its object-view permission, repeat and preserve the observed 403, then
-restore the permission. This repository does not claim that expected 403 as observed evidence.
-Save the command output under `reports/lab5/iam-removal.txt` before submission.
+The assessed permission-removal experiment was run on this project: the serving identity read the
+chosen model, lost its bucket object-view permission, received HTTP 403
+`storage.objects.get denied`, then read successfully after restoration. The temporary operator
+impersonation permission was also removed. Evidence is in `reports/lab5/iam-removal.txt`.
 
 ### Retraining trigger
 
@@ -240,5 +240,7 @@ make llm-gate   # expected non-zero: the guardrail regression is caught
 
 Offline fixtures are test evidence, not token-billing evidence. A live Vertex run reads
 `usage_metadata` in `GcpAdapter.generate`; only `reports/llm_eval-live.json` may supply measured
-token counts to `make cost`. The generated [Lab 5 cost report](reports/lab5-cost.md) keeps billing,
-IAM, managed-run and teardown evidence visibly pending until they are collected from this project.
+token counts to `make cost`. This project currently receives publisher-model access 404s in both
+`asia-southeast1` and `global`, recorded in `reports/lab5/llm-access-blocker.txt`; no token bill is
+claimed. The generated [Lab 5 cost report](reports/lab5-cost.md) keeps billing, managed-run,
+second-provider and live-token evidence visibly pending.

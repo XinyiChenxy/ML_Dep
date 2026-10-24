@@ -7,7 +7,6 @@ repository.
 Required before final submission:
 
 - `pipeline-success.txt`: Vertex run URL/ID and six-step outcome, including one failed gate branch
-- `iam-removal.txt`: successful artifact read, permission removal, observed 403, and restoration
 - `portability-evidence.txt`: real AWS upload/download/invoke output (offline tests are already present)
 - `billing.csv`: tag-filtered Lab 5 usage cost and credits after billing settles
 - `teardown-24h.txt`: second teardown verification at least 24 hours later
@@ -22,9 +21,19 @@ Completed cloud evidence:
   `PAUSED` state.
 - `quota-blocker.txt`: real failed Vertex run, the exact custom-training CPU quota, Google's
   4-CPU request/1-CPU grant response, and a check confirming no Custom Jobs or Endpoints remain.
+- `iam-removal.txt`: successful artifact read, permission removal, observed 403, restoration and
+  final IAM-policy verification.
+- `teardown.txt`: deletion of the paused schedule and immediate `PASS nothing found` verification.
+- `llm-access-blocker.txt`: regional and global publisher-model access probes returning 404 before
+  any content or usage metadata was produced.
 
 Current cloud blocker:
 
-- The project has only 1 regional Vertex custom-training CPU and Google declined the request for
-  4. The six-step pipeline cannot produce `pipeline-success.txt` until the account becomes eligible
-  for a sufficient quota increase. Do not replace this limitation with copied reference evidence.
+- Every listed Vertex region has an effective custom-training CPU limit of 1 and quota increase
+  eligibility reports `NOT_ENOUGH_USAGE_HISTORY`. Google declined the request for 4. The six-step
+  pipeline cannot produce `pipeline-success.txt` until the account becomes eligible for a
+  sufficient quota increase. Do not replace this limitation with copied reference evidence.
+- No AWS CLI/profile/credentials and no logged-in Azure subscription are present, so a real second
+  provider run requires the user to connect one of those accounts.
+- Billing is enabled, but the project contains no BigQuery dataset or Cloud Billing export; actual
+  tagged costs cannot be queried until export is enabled and usage has settled.

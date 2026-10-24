@@ -100,8 +100,8 @@ all pass.
 - [x] Twelve-case LLM golden set covers grounding, refusal, injection and insufficient input.
 - [x] Baseline passes 12/12; deliberately regressed gate fails 8 named cases.
 - [x] Token-cost helpers, output-cap saving and cache break-even tests.
-- [x] Real GCP quota refusal recorded in `reports/lab5/quota-blocker.txt`; no Custom Jobs or Endpoints
-  were left running, and the schedule is paused.
+- [x] Real GCP quota refusal recorded in `reports/lab5/quota-blocker.txt`; every listed Vertex region
+  has an effective limit of 1 CPU and quota eligibility is `NOT_ENOUGH_USAGE_HISTORY`.
 - [x] Controlled IAM experiment recorded in `reports/lab5/iam-removal.txt`: the serving identity
   read the registered artifact, lost bucket `objectViewer`, received HTTP 403
   `storage.objects.get denied`, regained the role and read successfully. Temporary impersonation
@@ -114,7 +114,7 @@ all pass.
 
 ### Still required externally
 
-- [ ] Upgrade/qualify the GCP billing account, obtain enough regional custom-training CPU quota and
+- [ ] Build enough GCP usage history, obtain at least 4 custom-training CPUs in one region and
   complete a successful managed pipeline run.
 - [x] Run the IAM removal experiment and preserve successful read → permission removal → 403 →
   restoration output.
@@ -126,8 +126,9 @@ all pass.
   returned `PASS nothing found`. Repeat the same check after 24 hours for final delayed-deletion
   assurance.
 
-**Current verdict:** local logic and negative gate evidence pass; managed acceptance is blocked by
-quota and several account-owned evidence steps remain.
+**Current verdict:** local logic, IAM failure evidence, negative LLM gate and teardown pass; managed
+acceptance remains blocked by account-owned quota, second-cloud, billing-export and publisher-model
+access requirements.
 
 ## Reproducible local checks
 
