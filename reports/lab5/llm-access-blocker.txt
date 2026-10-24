@@ -1,0 +1,35 @@
+Lab 5 live LLM access evidence — 2026-10-24 (Asia/Bangkok)
+
+Project: project-b9257458-cea1-4ef8-876
+Location: asia-southeast1
+Token ceiling: 64 for the full evaluation; 32 for the access probes
+
+Attempt 1
+---------
+Model: gemini-2.0-flash-001
+Result: HTTP/gRPC 404 NOT_FOUND. The publisher model was not found or the project does not have
+access in asia-southeast1.
+
+The official lifecycle table lists Gemini 2.0 Flash as retired on 2026-06-01, so the repository
+default was migrated to the documented current replacement family rather than retrying a retired
+model.
+
+Attempt 2
+---------
+Model: gemini-3.5-flash-lite
+Result: HTTP/gRPC 404 NOT_FOUND with the same explicit project-access/region message.
+
+Attempt 3
+---------
+Model: gemini-2.5-flash
+Result: HTTP/gRPC 404 NOT_FOUND with the same explicit project-access/region message.
+
+Official references checked:
+- https://docs.cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versions
+- https://docs.cloud.google.com/gemini-enterprise-agent-platform/resources/locations
+
+Conclusion
+----------
+No provider response or usage metadata was returned, so no token bill is claimed. The live golden
+set remains blocked until this project is granted access to a supported Vertex publisher model.
+The offline 12-case gate remains valid regression evidence but is not billing evidence.

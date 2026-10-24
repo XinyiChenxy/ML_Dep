@@ -1,7 +1,9 @@
 import argparse
+import json
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -18,6 +20,8 @@ def main() -> None:
     )
     parser.add_argument("--endpoint", default=os.environ.get("ENDPOINT_RESOURCE"))
     parser.add_argument("--workers", type=int, default=20)
+    parser.add_argument("--label", default="canary")
+    parser.add_argument("--out", type=Path)
     args = parser.parse_args()
     if not args.endpoint:
         parser.error("--endpoint or ENDPOINT_RESOURCE in cloud.env is required")
@@ -74,9 +78,22 @@ def main() -> None:
     roc_auc = roc_auc_score(y_true, y_prob)
     pr_auc = average_precision_score(y_true, y_prob)
 
+    report = {
+        "label": args.label,
+        "endpoint": args.endpoint,
+        "measured_at": datetime.now(timezone.utc).isoformat(),
+        "samples": len(rows),
+        "workers": args.workers,
+        "roc_auc": float(roc_auc),
+        "pr_auc": float(pr_auc),
+        "model_version_read": False,
+    }
+    if args.out is not None:
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(report, indent=2) + "\n")
+
     print()
-    print(f"ROC_AUC={roc_auc:.6f}")
-    print(f"PR_AUC={pr_auc:.6f}")
+    print(json.dumps(report, indent=2))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,13 @@
+Lab 5 teardown verification — 2026-10-24 (Asia/Bangkok)
+
+$ make teardown LAB=5
+Deleted paused schedule:
+projects/194540272188/locations/asia-southeast1/schedules/5501432817856282624
+
+$ python scripts/teardown_verify.py --lab 5
+searching for resources tagged {'course': 'itcs355',
+  'student': 'project-b9257458-cea1-4ef8-876', 'lab': '5'}
+PASS  nothing found under these tags
+
+The failed pipeline run remains in provider history as quota evidence, but it is terminal and does
+not consume compute. No Lab 5 Custom Job, Endpoint or Schedule remains running.

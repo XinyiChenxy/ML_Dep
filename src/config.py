@@ -59,7 +59,7 @@ class Config:
     training_image_uri: str = ""
     serving_image_uri: str = ""
     serving_service_account: str = ""
-    llm_model: str = "gemini-2.0-flash-001"
+    llm_model: str = "gemini-3.5-flash-lite"
     data_dir: Path = field(default=REPO_ROOT / "data")
     reports_dir: Path = field(default=REPO_ROOT / "reports")
 
@@ -92,7 +92,7 @@ def load(strict: bool = True) -> Config:
         training_image_uri=get("TRAINING_IMAGE_URI", ""),
         serving_image_uri=get("SERVING_IMAGE_URI", ""),
         serving_service_account=get("SERVING_SERVICE_ACCOUNT", ""),
-        llm_model=get("LLM_MODEL", "gemini-2.0-flash-001"),
+        llm_model=get("LLM_MODEL", "gemini-3.5-flash-lite"),
     )
 
 

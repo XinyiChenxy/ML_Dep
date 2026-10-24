@@ -18,23 +18,27 @@ pending cloud run or screenshot into evidence.
 - [x] Serving model registration injects its immutable artifact URI and runtime configuration.
 - [x] Endpoint labels match Lab 3/4/5 so the correct teardown command can find them.
 - [x] Committed k6/Locust scripts and a predeclared p95 < 500 ms target.
-- [x] Local three-concurrency baseline with p50/p95/p99, throughput, error rate, batch and payload
-  measurements in `reports/lab3-load.md`.
+- [x] Local and real Vertex three-concurrency measurements with p50/p95/p99, throughput, error
+  rate, batch and payload findings in `reports/lab3-load.md`.
+- [x] Real `n1-standard-2` versus `n1-standard-4` comparison with the same model and request set.
+- [x] Real 90/10 Vertex canary, model-blind quality detection, timestamped atomic rollback and
+  post-rollback recovery verification.
 - [x] Seven service HTTP integration tests pass against a real temporary Uvicorn process.
 
-### Still required externally
+### Managed evidence
 
 - [x] Deploy and smoke-test a real managed endpoint. Lab 4 CD run
   [`40006390277`](https://github.com/XinyiChenxy/ML_Dep/actions/runs/40006390277) deployed
   Vertex model version 1, passed all smoke requests and deleted the temporary endpoint.
-- [ ] Repeat the load test on that endpoint, including cold start if it scales to zero.
-- [ ] Compare one larger instance and its actual price.
-- [ ] Deploy the deliberately weaker version at 90/10, record metric-only detection and timestamped
-  rollback evidence.
-- [ ] Replace projected cost with billed/managed throughput figures.
-- [ ] Run `make teardown LAB=3` and capture an empty endpoint list.
+- [x] Managed load test completed at concurrency 1, 10 and 50; fixed replicas do not scale to zero.
+- [x] Compared the next larger instance using managed throughput and the course pricing rate.
+- [x] Deployed deliberately weaker immutable v2 at 90/10; detected degradation without reading
+  response version labels and restored v1 to 100%.
+- [x] Cost-per-1,000 denominator uses measured managed throughput; the report distinguishes the
+  planning hourly rate from a settled bill.
+- [x] `make teardown LAB=3` deleted the endpoint and a filtered provider query returned `[]`.
 
-**Current verdict:** code ready; acceptance evidence incomplete.
+**Current verdict:** managed serving, load, instance, canary, rollback and teardown evidence pass.
 
 ## Lab 4 — CI/CD, observability, drift
 
@@ -98,18 +102,29 @@ all pass.
 - [x] Token-cost helpers, output-cap saving and cache break-even tests.
 - [x] Real GCP quota refusal recorded in `reports/lab5/quota-blocker.txt`; no Custom Jobs or Endpoints
   were left running, and the schedule is paused.
+- [x] Controlled IAM experiment recorded in `reports/lab5/iam-removal.txt`: the serving identity
+  read the registered artifact, lost bucket `objectViewer`, received HTTP 403
+  `storage.objects.get denied`, regained the role and read successfully. Temporary impersonation
+  permission was removed and final IAM state was verified.
+- [x] Final `make teardown LAB=5` deleted the paused weekly schedule; immediate verification found
+  no remaining tagged Lab 5 Custom Job, Endpoint or Schedule.
+- [x] Live LLM access was attempted against the retired configured model and supported replacements;
+  all were blocked before usage metadata by provider 404 project-access errors, recorded in
+  `reports/lab5/llm-access-blocker.txt` without inventing a token bill.
 
 ### Still required externally
 
 - [ ] Upgrade/qualify the GCP billing account, obtain enough regional custom-training CPU quota and
   complete a successful managed pipeline run.
-- [ ] Run the IAM removal experiment and preserve successful read → permission removal → 403 →
+- [x] Run the IAM removal experiment and preserve successful read → permission removal → 403 →
   restoration output.
 - [ ] Demonstrate AWS upload/download/invoke against a real second account.
 - [ ] Export tag-filtered billing and replace pending actual-cost fields.
-- [ ] Run the live LLM evaluation and use provider-reported token fields.
-- [ ] Delete the paused schedule and every remaining Lab 5 resource; capture the empty console list
-  and repeat verification after 24 hours.
+- [ ] Obtain publisher-model access, then run the live LLM evaluation and use provider-reported
+  token fields.
+- [x] Delete the paused schedule and every remaining tagged Lab 5 resource; immediate verification
+  returned `PASS nothing found`. Repeat the same check after 24 hours for final delayed-deletion
+  assurance.
 
 **Current verdict:** local logic and negative gate evidence pass; managed acceptance is blocked by
 quota and several account-owned evidence steps remain.

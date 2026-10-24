@@ -1,0 +1,45 @@
+{
+  "label": "canary-rollout",
+  "timestamp": "2026-10-24T04:55:46.193586+00:00",
+  "endpoint": "projects/194540272188/locations/asia-southeast1/endpoints/4762602785432666112",
+  "before": [
+    {
+      "id": "2250948791685349376",
+      "model": "projects/194540272188/locations/asia-southeast1/models/7009813237583577088",
+      "display_name": "itcs355-lab3-v1",
+      "traffic_percentage": 90
+    },
+    {
+      "id": "2811083995339554816",
+      "model": "projects/194540272188/locations/asia-southeast1/models/7009813237583577088",
+      "display_name": "itcs355-lab3-v2",
+      "traffic_percentage": 10
+    },
+    {
+      "id": "6636891878790791168",
+      "model": "projects/194540272188/locations/asia-southeast1/models/7009813237583577088",
+      "display_name": "itcs355-lab3-v1",
+      "traffic_percentage": 0
+    }
+  ],
+  "after": [
+    {
+      "id": "2250948791685349376",
+      "model": "projects/194540272188/locations/asia-southeast1/models/7009813237583577088",
+      "display_name": "itcs355-lab3-v1",
+      "traffic_percentage": 90
+    },
+    {
+      "id": "2811083995339554816",
+      "model": "projects/194540272188/locations/asia-southeast1/models/7009813237583577088",
+      "display_name": "itcs355-lab3-v2",
+      "traffic_percentage": 10
+    },
+    {
+      "id": "6636891878790791168",
+      "model": "projects/194540272188/locations/asia-southeast1/models/7009813237583577088",
+      "display_name": "itcs355-lab3-v1",
+      "traffic_percentage": 0
+    }
+  ]
+}

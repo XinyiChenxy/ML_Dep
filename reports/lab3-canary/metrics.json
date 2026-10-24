@@ -1,0 +1,33 @@
+{
+  "run_id": "lab3-canary-20261024T044101Z",
+  "metrics": {
+    "stable_validation": {
+      "roc_auc": 0.8487511052166223,
+      "pr_auc": 0.5200600703087674
+    },
+    "stable_test": {
+      "roc_auc": 0.8384014664523904,
+      "pr_auc": 0.4427485260747059
+    },
+    "canary_validation": {
+      "roc_auc": 0.6899867374005305,
+      "pr_auc": 0.25377050674444035
+    },
+    "canary_test": {
+      "roc_auc": 0.7187625552430694,
+      "pr_auc": 0.2631328320802005
+    },
+    "test_roc_auc_delta": -0.11963891120932102
+  },
+  "lineage": {
+    "git_commit": "6815133fb9d5a80bb0f10df98ee1c8c436757a98",
+    "data_version": "422cccb9136e8140",
+    "mlflow_run_id": "lab3-canary-20261024T044101Z",
+    "training_job_id": "local-controlled-degradation",
+    "image_digest": "sha256:78ad295df355d05f7aad1312aa5fd992346d9da112077efa83ae59b23b65213c",
+    "seed": "20260103",
+    "metric_val": "0.6899867374005305",
+    "metric_test": "0.7187625552430694"
+  },
+  "artifact_uri": "gs://project-b9257458-cea1-4ef8-876-itcs355/itcs355/lab3/models/canary"
+}

@@ -1,0 +1,47 @@
+{
+  "endpoint": "projects/194540272188/locations/asia-southeast1/endpoints/4762602785432666112",
+  "provider": "gcp",
+  "region": "asia-southeast1",
+  "measured_at": "2026-10-24T04:44:55Z",
+  "results": [
+    {
+      "concurrency": 1,
+      "requests": 100,
+      "successful": 100,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 5.663,
+      "p50_ms": 151.01,
+      "p95_ms": 237.9,
+      "p99_ms": 301.74,
+      "wall_seconds": 17.658,
+      "sample_errors": []
+    },
+    {
+      "concurrency": 10,
+      "requests": 100,
+      "successful": 100,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 22.214,
+      "p50_ms": 415.19,
+      "p95_ms": 681.85,
+      "p99_ms": 738.82,
+      "wall_seconds": 4.502,
+      "sample_errors": []
+    },
+    {
+      "concurrency": 50,
+      "requests": 100,
+      "successful": 100,
+      "errors": 0,
+      "error_rate": 0.0,
+      "throughput_rps": 21.215,
+      "p50_ms": 2128.95,
+      "p95_ms": 3085.2,
+      "p99_ms": 3157.83,
+      "wall_seconds": 4.714,
+      "sample_errors": []
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+Lab 3 teardown verification — 2026-10-24 12:00 Asia/Bangkok
+
+$ make teardown LAB=3
+Undeployed three deployed models and deleted:
+projects/194540272188/locations/asia-southeast1/endpoints/4762602785432666112
+
+$ gcloud ai endpoints list --project=project-b9257458-cea1-4ef8-876 \
+    --region=asia-southeast1 --filter='labels.lab=3' --format=json
+[]
+
+Result: PASS — no Lab 3 endpoint or online compute remains.

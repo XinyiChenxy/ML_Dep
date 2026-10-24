@@ -1,0 +1,10 @@
+{
+  "label": "canary-90-10",
+  "endpoint": "projects/194540272188/locations/asia-southeast1/endpoints/4762602785432666112",
+  "measured_at": "2026-10-24T04:56:47.666265+00:00",
+  "samples": 1200,
+  "workers": 20,
+  "roc_auc": 0.9018870530333467,
+  "pr_auc": 0.6509312213818678,
+  "model_version_read": false
+}

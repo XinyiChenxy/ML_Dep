@@ -1,7 +1,7 @@
 """The portability seam.
 
-Eleven methods. Every managed ML platform sells you the same eleven operations under
-different names; writing this once is the difference between knowing a product and
+Every managed ML platform sells you the same core operations under different names;
+writing this interface once is the difference between knowing a product and
 knowing the category. `generate` is the newest of them and the one the vendors are
 currently busiest renaming.
 
@@ -61,6 +61,24 @@ class CloudAdapter(ABC):
         raise NotImplementedError("Lab 3")
 
     def invoke(self, endpoint: str, payload: dict[str, Any]) -> dict[str, Any]:
+        raise NotImplementedError("Lab 3")
+
+    def deploy_canary(
+        self,
+        model_ref: str,
+        endpoint: str,
+        instance: str,
+        traffic_percentage: int = 10,
+    ) -> str:
+        """Deploy a second model while preserving most traffic on the incumbent."""
+        raise NotImplementedError("Lab 3")
+
+    def endpoint_traffic(self, endpoint: str) -> list[dict[str, Any]]:
+        """Return deployed model IDs, immutable model references, and traffic percentages."""
+        raise NotImplementedError("Lab 3")
+
+    def set_endpoint_traffic(self, endpoint: str, split: dict[str, int]) -> list[dict[str, Any]]:
+        """Atomically replace an endpoint's traffic split; percentages must total 100."""
         raise NotImplementedError("Lab 3")
 
     # --- Lab 4 ---------------------------------------------------------------

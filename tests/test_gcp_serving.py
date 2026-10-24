@@ -83,3 +83,59 @@ def test_teardown_passes_custom_job_filter_in_request(monkeypatch):
         "parent": "projects/test-project/locations/asia-southeast1",
         "filter": 'labels.course="itcs355" AND labels.lab="4"',
     })
+
+
+def test_endpoint_traffic_and_rollback_update(monkeypatch):
+    deployed = [
+        SimpleNamespace(id="stable", model="models/7@1", display_name="stable-v1"),
+        SimpleNamespace(id="canary", model="models/7@2", display_name="canary-v2"),
+    ]
+    resource = SimpleNamespace(
+        deployed_models=deployed,
+        traffic_split={"stable": 90, "canary": 10},
+    )
+    endpoint = SimpleNamespace(
+        resource_name="projects/test/locations/test/endpoints/3",
+        gca_resource=resource,
+        update=Mock(),
+    )
+    adapter = GcpAdapter(config())
+    monkeypatch.setattr(adapter, "_endpoint", lambda _: endpoint)
+
+    assert adapter.endpoint_traffic("itcs355-lab3") == [
+        {
+            "id": "stable",
+            "model": "models/7@1",
+            "display_name": "stable-v1",
+            "traffic_percentage": 90,
+        },
+        {
+            "id": "canary",
+            "model": "models/7@2",
+            "display_name": "canary-v2",
+            "traffic_percentage": 10,
+        },
+    ]
+
+    adapter.set_endpoint_traffic("itcs355-lab3", {"stable": 100, "canary": 0})
+    endpoint.update.assert_called_once_with(
+        traffic_split={"stable": 100, "canary": 0}
+    )
+
+
+def test_traffic_split_validation_rejects_bad_or_unknown_ids():
+    try:
+        GcpAdapter._validate_traffic_split({"stable": 90}, {"stable"})
+    except ValueError as exc:
+        assert "total 100" in str(exc)
+    else:
+        raise AssertionError("invalid total was accepted")
+
+    try:
+        GcpAdapter._validate_traffic_split(
+            {"stable": 90, "unknown": 10}, {"stable", "canary"}
+        )
+    except ValueError as exc:
+        assert "Unknown deployed model IDs" in str(exc)
+    else:
+        raise AssertionError("unknown deployed model ID was accepted")

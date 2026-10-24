@@ -2,7 +2,8 @@
 
 **Provider:** `gcp`<br>
 **Region:** `asia-southeast1`<br>
-**Status:** local implementation complete; cloud billing evidence still required
+**Status:** implementation, IAM failure experiment and teardown complete; account-owned cloud
+billing, second-provider and live LLM evidence still required
 
 ## 1. Estimate committed before the managed run
 
@@ -52,7 +53,10 @@ completion latency through interruption and retry; it does not change online pre
 
 ## 7. LLM token bill and controls
 
-**Pending live evidence.** Run `python scripts/llm_eval.py --live --out reports/llm_eval-live.json` and regenerate this report. Offline fixture token fields are deliberately not presented as a measured bill.
+**Blocked live evidence.** The retired configured model and two supported replacement probes all
+returned provider 404 project-access/region errors before any content or usage metadata was
+generated. Exact evidence is in `reports/lab5/llm-access-blocker.txt`. Offline fixture token fields
+are deliberately not presented as a measured bill.
 
 The live configuration caps output at 64 tokens. Against a 200-output-token worst case with a
 420-token input, the cap limits exposure by **4.6240 THB/1,000 requests** at the course

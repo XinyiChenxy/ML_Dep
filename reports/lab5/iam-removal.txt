@@ -1,0 +1,29 @@
+Lab 5 least-privilege removal experiment — 2026-10-24 (Asia/Bangkok)
+
+Identity under test:
+  itcs355-serving@project-b9257458-cea1-4ef8-876.iam.gserviceaccount.com
+Object under test:
+  gs://project-b9257458-cea1-4ef8-876-itcs355/itcs355/models/bootstrap/model.joblib
+
+1. Baseline while roles/storage.objectViewer was present:
+   exit 0, object name itcs355/models/bootstrap/model.joblib, size 2,729,385 bytes.
+
+2. Removed only the bucket-level roles/storage.objectViewer binding for the serving identity.
+
+3. Repeated the same request while impersonating the same serving identity:
+   exit 1, HTTP 403, permission storage.objects.get denied.
+
+4. Restored the identical bucket-level roles/storage.objectViewer binding.
+
+5. Repeated the same request again:
+   exit 0, same object name and size 2,729,385 bytes.
+
+To execute the test, the operator temporarily received roles/iam.serviceAccountTokenCreator on
+this one service account. Exit cleanup restored objectViewer on every path. The temporary token
+creator binding was removed after the test. Final read-only policy checks showed:
+
+- service-account policy contains only serviceAccountUser for the CI and pipeline identities;
+- bucket policy contains serving SA under roles/storage.objectViewer.
+
+Result: PASS — removing the documented read permission causes the expected 403, and restoration
+returns the workload to its original least-privilege state.

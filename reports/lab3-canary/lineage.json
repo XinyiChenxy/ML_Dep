@@ -1,0 +1,10 @@
+{
+  "git_commit": "6815133fb9d5a80bb0f10df98ee1c8c436757a98",
+  "data_version": "422cccb9136e8140",
+  "mlflow_run_id": "lab3-canary-20261024T044101Z",
+  "training_job_id": "local-controlled-degradation",
+  "image_digest": "sha256:78ad295df355d05f7aad1312aa5fd992346d9da112077efa83ae59b23b65213c",
+  "seed": "20260103",
+  "metric_val": "0.6899867374005305",
+  "metric_test": "0.7187625552430694"
+}

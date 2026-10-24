@@ -71,9 +71,16 @@ class GcpAdapter(CloudAdapter):
     def _client(self, kind):
         from google.cloud import aiplatform_v1
 
-        return getattr(aiplatform_v1, kind)(
-            client_options={"api_endpoint": f"{self.cfg.region}-aiplatform.googleapis.com"}
-        )
+        # GAPIC clients own a reusable gRPC channel. Recreating one per prediction adds
+        # connection setup to every latency sample and can exhaust sockets under load.
+        clients = getattr(self, "_client_cache", None)
+        if clients is None:
+            clients = self._client_cache = {}
+        if kind not in clients:
+            clients[kind] = getattr(aiplatform_v1, kind)(
+                client_options={"api_endpoint": f"{self.cfg.region}-aiplatform.googleapis.com"}
+            )
+        return clients[kind]
 
     @property
     def parent(self):
@@ -253,6 +260,26 @@ class GcpAdapter(CloudAdapter):
         return artifact_uri.rstrip("/") + "/model.joblib"
 
     def deploy(self, model_ref: str, endpoint: str, instance: str) -> str:
+        return self._deploy(model_ref, endpoint, instance, traffic_percentage=100)
+
+    def deploy_canary(
+        self,
+        model_ref: str,
+        endpoint: str,
+        instance: str,
+        traffic_percentage: int = 10,
+    ) -> str:
+        if not 1 <= traffic_percentage <= 99:
+            raise ValueError("Canary traffic percentage must be between 1 and 99")
+        return self._deploy(model_ref, endpoint, instance, traffic_percentage)
+
+    def _deploy(
+        self,
+        model_ref: str,
+        endpoint: str,
+        instance: str,
+        traffic_percentage: int,
+    ) -> str:
         from google.cloud import aiplatform
 
         aiplatform.init(project=self.cfg.project_id, location=self.cfg.region)
@@ -273,11 +300,54 @@ class GcpAdapter(CloudAdapter):
             machine_type=instance,
             min_replica_count=1,
             max_replica_count=1,
-            traffic_percentage=100,
+            traffic_percentage=traffic_percentage,
             service_account=self.cfg.serving_service_account or None,
             sync=True,
         )
         return endpoint_obj.resource_name
+
+    def _endpoint(self, endpoint: str):
+        from google.cloud import aiplatform
+
+        aiplatform.init(project=self.cfg.project_id, location=self.cfg.region)
+        if endpoint.startswith("projects/") or endpoint.isdigit():
+            return aiplatform.Endpoint(endpoint_name=endpoint)
+        matches = aiplatform.Endpoint.list(filter=f'display_name="{endpoint}"')
+        if len(matches) != 1:
+            raise ValueError(f"Expected one endpoint named {endpoint!r}, found {len(matches)}")
+        return matches[0]
+
+    @staticmethod
+    def _validate_traffic_split(split: dict[str, int], deployed_ids: set[str]) -> None:
+        if not split or sum(split.values()) != 100:
+            raise ValueError("Traffic percentages must total 100")
+        if any(value < 0 or value > 100 for value in split.values()):
+            raise ValueError("Traffic percentages must be between 0 and 100")
+        unknown = set(split) - deployed_ids
+        if unknown:
+            raise ValueError(f"Unknown deployed model IDs: {sorted(unknown)}")
+
+    def endpoint_traffic(self, endpoint: str) -> list[dict[str, Any]]:
+        endpoint_obj = self._endpoint(endpoint)
+        resource = endpoint_obj.gca_resource
+        split = dict(resource.traffic_split)
+        return [
+            {
+                "id": str(model.id),
+                "model": str(model.model),
+                "display_name": str(model.display_name),
+                "traffic_percentage": int(split.get(model.id, 0)),
+            }
+            for model in resource.deployed_models
+        ]
+
+    def set_endpoint_traffic(self, endpoint: str, split: dict[str, int]) -> list[dict[str, Any]]:
+        endpoint_obj = self._endpoint(endpoint)
+        deployed_ids = {str(model.id) for model in endpoint_obj.gca_resource.deployed_models}
+        clean_split = {str(key): int(value) for key, value in split.items()}
+        self._validate_traffic_split(clean_split, deployed_ids)
+        endpoint_obj.update(traffic_split=clean_split)
+        return self.endpoint_traffic(endpoint_obj.resource_name)
 
     @staticmethod
     def _lab_from_endpoint(endpoint: str) -> int:

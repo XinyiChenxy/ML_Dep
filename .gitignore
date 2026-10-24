@@ -15,7 +15,9 @@ mlartifacts/
 mlflow.db
 
 reports/*.json
+!reports/lab3-*.json
 reports/*.joblib
+reports/lab3-canary/model.joblib
 __pycache__/
 *.pyc
 .pytest_cache/
