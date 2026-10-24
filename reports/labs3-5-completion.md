@@ -24,7 +24,9 @@ pending cloud run or screenshot into evidence.
 
 ### Still required externally
 
-- [ ] Deploy and smoke-test a real managed endpoint.
+- [x] Deploy and smoke-test a real managed endpoint. Lab 4 CD run
+  [`40006390277`](https://github.com/XinyiChenxy/ML_Dep/actions/runs/40006390277) deployed
+  Vertex model version 1, passed all smoke requests and deleted the temporary endpoint.
 - [ ] Repeat the load test on that endpoint, including cold start if it scales to zero.
 - [ ] Compare one larger instance and its actual price.
 - [ ] Deploy the deliberately weaker version at 90/10, record metric-only detection and timestamped
@@ -50,6 +52,11 @@ pending cloud run or screenshot into evidence.
   post-mortem.
 - [x] Main [CI run `39994453361`](https://github.com/XinyiChenxy/ML_Dep/actions/runs/39994453361)
   passed on commit `0d6ea64`.
+- [x] Final [CI run `40005606348`](https://github.com/XinyiChenxy/ML_Dep/actions/runs/40005606348)
+  passed on commit `0dc78a5`; its gated
+  [CD run `40006390277`](https://github.com/XinyiChenxy/ML_Dep/actions/runs/40006390277)
+  authenticated with WIF, built and pushed the image, deployed Vertex model version 1 with the
+  dedicated serving identity, passed the managed-endpoint smoke test and cleaned up staging.
 - [x] GitHub OIDC authenticates through repository-scoped GCP Workload Identity Federation without
   a long-lived service-account key.
 - [x] Live [scheduled drift run `39996053148`](https://github.com/XinyiChenxy/ML_Dep/actions/runs/39996053148)
@@ -69,11 +76,12 @@ pending cloud run or screenshot into evidence.
   `missing columns: ['temp_c']`. Close it without merging after preserving the screenshot.
 - [x] `make teardown LAB=4` returned `[]`; `scripts/teardown_verify.py --lab 4` returned
   `PASS nothing found`, recorded in `reports/lab4-teardown.txt`.
-- [ ] Disable the GitHub `Scheduled drift detection` workflow after preserving all evidence, so its
-  hourly cron cannot continue emitting metrics and Slack alerts.
+- [x] GitHub `Scheduled drift detection` is `disabled_manually`, so its hourly cron cannot continue
+  emitting metrics and Slack alerts.
 
-**Current verdict:** CI blocking, WIF, scheduled drift, metric emission, real-channel alert,
-dashboard and cloud teardown evidence pass; only disabling the GitHub cron remains.
+**Current verdict:** CI blocking, WIF, gated CD, real managed deployment and smoke test, scheduled
+drift, metric emission, real-channel alert, dashboard, disabled cron and cloud teardown evidence
+all pass.
 
 ## Lab 5 — managed operation, portability, cost and LLM controls
 

@@ -12,6 +12,8 @@ searching for resources tagged {'course': 'itcs355', 'student': 'project-b925745
 
 PASS  nothing found under these tags
 
-Vertex AI Endpoint and Custom Job read-only lists were also empty for the Lab 4 labels before the
-verified teardown. The GitHub scheduled workflow must be disabled separately in the Actions UI so
-the hourly cron does not continue emitting metrics and Slack alerts.
+Final verification was repeated after successful gated CD run 40006390277 deployed, smoke-tested
+and automatically deleted its temporary Vertex endpoint. Vertex AI Endpoint and Custom Job
+read-only lists were empty for the Lab 4 labels. The GitHub scheduled drift workflow state was
+also verified as `disabled_manually`, so the hourly cron cannot continue emitting metrics or Slack
+alerts.
