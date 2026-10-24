@@ -1,0 +1,30 @@
+Lab 5 Cloud Billing export setup — 2026-10-24 (Asia/Shanghai)
+
+Project: project-b9257458-cea1-4ef8-876
+Billing account: billingAccounts/01F76E-6F342D-52BA96
+Billing enabled: true
+BigQuery dataset: project-b9257458-cea1-4ef8-876.itcs355_billing
+Location: US multi-region
+Labels: course=itcs355, lab=5
+Description: ITCS355 Lab 5 Cloud Billing export evidence
+
+The US multi-region was selected because Google documents that initial Standard/Detailed usage
+exports to US or EU can backfill the current and previous month. A supported single region only
+exports usage starting on the day the export is enabled. Dataset location is immutable.
+
+Remaining console-only step
+---------------------------
+In Cloud Billing > Billing export > BigQuery export, enable Standard usage cost export and select:
+
+  project-b9257458-cea1-4ef8-876
+  itcs355_billing
+
+After Google creates a table named gcp_billing_export_v1_*, run:
+
+  make billing-export PROJECT_ID=project-b9257458-cea1-4ef8-876
+
+That command writes reports/lab5/billing.csv, filtered to this project and both
+course=itcs355 / lab=5 labels, with usage cost, credits and net cost kept separate.
+
+Official setup documentation:
+https://docs.cloud.google.com/billing/docs/how-to/export-data-bigquery-setup

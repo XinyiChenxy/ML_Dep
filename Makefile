@@ -17,7 +17,7 @@ SECOND ?= aws
 SECOND_ARGS ?=
 
 .PHONY: help setup cloud-check data test scan-secrets portability-audit train image image-push reproduce verify clean teardown \
-        tune compare reload-check deploy smoke serve serve-image loadtest canary-check drift inject-drift pipeline cost swap-check llm-eval llm-gate teardown-verify
+        tune compare reload-check deploy smoke serve serve-image loadtest canary-check drift inject-drift pipeline cost swap-check llm-eval llm-gate teardown-verify billing-export
 
 help:
 	@grep -E "^[a-zA-Z_-]+:.*?## .*$$" $(MAKEFILE_LIST) | awk -F":.*?## " "{printf \"  %-20s %s\\n\", \$$1, \$$2}"
@@ -138,6 +138,9 @@ swap-check: ## Prove the portability seam against a second provider
 
 teardown-verify: ## Re-check Lab 5 resources after asynchronous teardown
 	python scripts/teardown_verify.py --lab 5
+
+billing-export: ## Export tag-filtered Lab 5 costs after Billing creates its BigQuery table
+	python scripts/billing_export.py --project $(PROJECT_ID) --dataset itcs355_billing
 
 .PHONY: train-remote register image-gcp cost-report
 train-remote: ## Submit a GCP Spot study (set REMOTE_ARGS)

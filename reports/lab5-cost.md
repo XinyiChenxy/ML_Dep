@@ -13,8 +13,11 @@ before any Lab 5 managed run initiated from this implementation.
 
 ## 2. Actual cost from billing, filtered by `course=itcs355,lab=5`
 
-**Pending billing export.** Credits must be reported separately from usage cost. Do not replace this
-with the answer repository's bill; export this project's tagged billing data after running.
+**Pending first billing load.** The labeled US dataset
+`project-b9257458-cea1-4ef8-876.itcs355_billing` is ready, but Standard usage cost export must still
+be selected in the Cloud Billing console. After the provider creates its table, `make billing-export
+PROJECT_ID=project-b9257458-cea1-4ef8-876` writes the tag-filtered CSV with credits separate from
+usage cost. Do not replace this with the answer repository's bill.
 
 ## 3. Estimate versus actual
 

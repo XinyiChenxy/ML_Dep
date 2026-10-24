@@ -28,6 +28,8 @@ Completed cloud evidence:
   resolution.
 - `llm-live-evidence.txt` and `../llm_eval-live.json`: real Vertex global evaluation, 12/12 gate,
   provider-reported token usage, latency, estimated token cost and credential cleanup.
+- `billing-export-setup.txt`: billing-enabled project and labeled US multi-region dataset prepared;
+  `make billing-export` is ready to query the provider-created table.
 
 Current cloud blocker:
 
@@ -37,5 +39,6 @@ Current cloud blocker:
   sufficient quota increase. Do not replace this limitation with copied reference evidence.
 - No AWS CLI/profile/credentials and no logged-in Azure subscription are present, so a real second
   provider run requires the user to connect one of those accounts.
-- Billing is enabled, but the project contains no BigQuery dataset or Cloud Billing export; actual
-  tagged costs cannot be queried until export is enabled and usage has settled.
+- Billing is enabled and the `itcs355_billing` dataset exists, but Google requires the final
+  Standard usage cost export selection in the Cloud Console. Actual tagged costs cannot be queried
+  until that console-only setting is saved and the first export load settles.

@@ -48,8 +48,13 @@ def main() -> int:
         usage = llmcost.Usage(live["avg_input_tokens"], live["avg_output_tokens"])
         token_cost = llmcost.cost_per_1k_requests(provider, "small", usage)
         usage_text = (
-            f"Provider usage metadata measured {usage.input_tokens} average input and "
-            f"{usage.output_tokens} average output tokens: **{token_cost:.4f} THB/1,000**."
+            f"The live `{live.get('provider_location', 'managed')}` run of "
+            f"`{live.get('provider_model', 'the configured model')}` passed "
+            f"**{live['passed']}/{live['cases']}** cases. Provider usage metadata measured "
+            f"{usage.input_tokens} average input, {live.get('avg_candidate_tokens', 0)} visible "
+            f"candidate and {live.get('avg_thinking_tokens', 0)} thinking tokens, for "
+            f"{usage.output_tokens} billed output tokens: **{token_cost:.4f} THB/1,000**. "
+            f"Measured p95 latency was **{live['p95_latency_ms']:,} ms**."
         )
     else:
         usage_text = (
@@ -58,8 +63,10 @@ def main() -> int:
             "token fields are deliberately not presented as a measured bill."
         )
 
-    worst_case = llmcost.Usage(input_tokens=420, output_tokens=200)
-    cap_saving = llmcost.output_cap_saving(provider, "small", worst_case, 64)
+    measured_input = live["avg_input_tokens"] if live else 415
+    output_cap = 256
+    worst_case = llmcost.Usage(input_tokens=measured_input, output_tokens=1024)
+    cap_saving = llmcost.output_cap_saving(provider, "small", worst_case, output_cap)
     cache_break_even = llmcost.cache_breakeven_hit_rate(
         provider, "small", prefix_tokens=400
     )
@@ -75,7 +82,7 @@ def main() -> int:
 
 **Provider:** `{provider}`<br>
 **Region:** `{region}`<br>
-**Status:** local implementation complete; cloud billing evidence still required
+**Status:** implementation and live LLM evidence complete; settled cloud billing still required
 
 ## 1. Estimate committed before the managed run
 
@@ -125,10 +132,10 @@ completion latency through interruption and retry; it does not change online pre
 
 {usage_text}
 
-The live configuration caps output at 64 tokens. Against a 200-output-token worst case with a
-420-token input, the cap limits exposure by **{cap_saving:.4f} THB/1,000 requests** at the course
-reference small-model rate. The 12-case offline gate passes with concise responses under this cap;
-the live gate must also pass before this is claimed as a production saving.
+The live configuration caps output at {output_cap} tokens. Against a hypothetical 1,024-output-token
+response with the measured {measured_input}-token input, the cap limits exposure by
+**{cap_saving:.4f} THB/1,000 requests** at the course reference small-model rate. The live 12-case
+gate passes under this cap.
 
 Prompt caching breaks even above a **{cache_break_even * 100:.2f}%** hit rate. The golden prompts
 are all distinct and no live cache-hit field has been collected, so the measured hit rate is not
@@ -137,10 +144,10 @@ claimed and caching remains disabled.
 ## Budget defence
 
 The classifier cost is strongly utilisation-dependent, while the LLM cost is linear in provider-
-reported tokens. We selected Spot training and a 64-token output ceiling, but will not claim an
-actual per-1,000 LLM price until a live response supplies token usage metadata. The trade-off is
-possible Spot delay and deliberately shorter explanations; the regression gate protects the four
-critical behaviours before that cheaper configuration can ship.
+reported tokens. We selected Spot training, the smaller Gemini variant and a {output_cap}-token
+output ceiling. The live gate supports this choice; the trade-off is possible Spot delay and
+deliberately shorter explanations. The token figure is a measured-usage planning estimate, while
+the infrastructure total remains pending until Cloud Billing writes its export table.
 """
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(content)
